@@ -14,11 +14,11 @@ public class MenuManager : MonoBehaviour
         menus = GetComponentsInChildren<Menu>();
     }
 
-    public void OpenMenu(string menuName)
+    public void OpenMenu(string name)
     {
         for (int i = 0; i < menus.Length; i++)
         {
-            if (menus[i].menuName == menuName)
+            if (menus[i].menuName == name)
             {
                 menus[i].Open();
             }
