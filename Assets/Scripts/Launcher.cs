@@ -33,6 +33,8 @@ public class Launcher : MonoBehaviourPunCallbacks
     {
         if (PlayerPrefs.HasKey("username"))
             usernameInput.text = PlayerPrefs.GetString("username");
+        if (PlayerPrefs.HasKey("roomname"))
+            roomNameInput.text = PlayerPrefs.GetString("roomname");
         MenuManager.Instance.OpenMenu("login");
     }
 
@@ -85,9 +87,10 @@ public class Launcher : MonoBehaviourPunCallbacks
             return;
 
         RoomOptions roomOptions = new RoomOptions();
-        roomOptions.MaxPlayers = 6; // for example
+        roomOptions.MaxPlayers = 6;
         PhotonNetwork.CreateRoom(roomNameInput.text, roomOptions, null);
         MenuManager.Instance.OpenMenu("loading");
+        PlayerPrefs.SetString("roomname", roomNameInput.text);
     }
 
     public override void OnCreateRoomFailed(short returnCode, string message)

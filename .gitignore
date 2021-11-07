@@ -71,4 +71,5 @@ crashlytics-build.properties
 /[Aa]ssets/[Ss]treamingAssets/aa/*
 
 # Photon Server Settings has sensitive information
-FPS Game/Assets/Photon/PhotonUnityNetworking/Resources/PhotonServerSettings.asset
+/[Aa]ssets/Photon
+#/PhotonUnityNetworking/Resources/PhotonServerSettings.asset
