@@ -1,9 +1,11 @@
 using System.Collections;
 using System.Collections.Generic;
+using Photon.Pun;
 using TMPro;
 using UnityEngine;
+using Hashtable = ExitGames.Client.Photon.Hashtable;
 
-public class ItemPickup : MonoBehaviour
+public class ItemPickup : MonoBehaviourPunCallbacks
 {
     private int value = 20;
     private HUD hud;
@@ -27,6 +29,18 @@ public class ItemPickup : MonoBehaviour
     private void OnMouseExit()
     {
         hud.HideValue();
+    }
+
+    private void OnMouseDown()
+    {
+        int money = (int)PhotonNetwork.LocalPlayer.CustomProperties["money"];
+        money += value;
+        Hashtable hash = new Hashtable();
+        hash.Add("money", money);
+        PhotonNetwork.LocalPlayer.SetCustomProperties(hash);
+        Debug.Log(money);
+        hud.HideValue();
+        Destroy(gameObject);
     }
 
     public void SetValue(int _value)

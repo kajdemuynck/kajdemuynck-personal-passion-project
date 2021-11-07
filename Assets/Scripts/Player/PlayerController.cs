@@ -4,6 +4,7 @@ using Photon.Pun;
 using Photon.Realtime;
 using UnityEngine;
 using UnityEngine.UI;
+using Hashtable = ExitGames.Client.Photon.Hashtable;
 
 public class PlayerController : MonoBehaviourPunCallbacks
 {
@@ -35,6 +36,9 @@ public class PlayerController : MonoBehaviourPunCallbacks
         if (pv.IsMine)
         {
             Debug.Log("Player created");
+            Hashtable hash = new Hashtable();
+            hash.Add("money", 0);
+            PhotonNetwork.LocalPlayer.SetCustomProperties(hash);
         }
         else
         {
