@@ -178,6 +178,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: Shelf (1)
       objectReference: {fileID: 0}
+    - target: {fileID: 2825902061878837677, guid: 32187dcbea134454a9863773d826a238, type: 3}
+      propertyPath: m_Enabled
+      value: 0
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 32187dcbea134454a9863773d826a238, type: 3}
 --- !u!4 &35910765 stripped
@@ -1335,7 +1339,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3cf8d1a1c0e9044f0a02fe942894057c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  itemValueText: {fileID: 2004126486}
+  itemDescriptionText: {fileID: 2004126486}
 --- !u!1001 &1944429867
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -1391,6 +1395,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: Shelf
       objectReference: {fileID: 0}
+    - target: {fileID: 2825902061878837677, guid: 32187dcbea134454a9863773d826a238, type: 3}
+      propertyPath: m_Enabled
+      value: 0
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 32187dcbea134454a9863773d826a238, type: 3}
 --- !u!4 &1944429868 stripped
@@ -1410,7 +1418,7 @@ GameObject:
   - component: {fileID: 2004126487}
   - component: {fileID: 2004126486}
   m_Layer: 5
-  m_Name: TextItemInfo
+  m_Name: TextItemDescription
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

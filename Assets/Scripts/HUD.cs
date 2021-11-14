@@ -5,16 +5,17 @@ using UnityEngine;
 
 public class HUD : MonoBehaviour
 {
-    [SerializeField] TMP_Text itemValueText;
+    [SerializeField] TMP_Text itemDescriptionText;
 
-    public void ShowValue(int value)
+    public void ShowDescription(string description)
     {
-        itemValueText.gameObject.SetActive(true);
-        itemValueText.text = string.Format("Worth {0} dollars", value);
+        itemDescriptionText.gameObject.SetActive(true);
+        itemDescriptionText.text = description;
     }
 
-    public void HideValue()
+    public void HideDescription()
     {
-        itemValueText.gameObject.SetActive(false);
+        itemDescriptionText.gameObject.SetActive(false);
+        itemDescriptionText.text = "";
     }
 }

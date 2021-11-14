@@ -7,44 +7,49 @@ using Hashtable = ExitGames.Client.Photon.Hashtable;
 
 public class ItemPickup : MonoBehaviourPunCallbacks
 {
-    private int value = 20;
+    protected string description;
+    protected bool isDestroyed = false;
+    protected int interactionDistance = 2;
     private HUD hud;
 
-    private void Start()
+    protected virtual void Start()
     {
         hud = GameObject.Find("HUD").GetComponent<HUD>();
-        Debug.Log(hud.name);
     }
 
-    private void OnMouseOver()
+    protected void OnMouseOver()
+    {
+        if (GetDistanceFromCamera(transform.position) <= interactionDistance && !isDestroyed)
+            hud.ShowDescription(description);
+        else
+            hud.HideDescription();
+    }
+
+    protected void OnMouseExit()
+    {
+        hud.HideDescription();
+    }
+
+    protected virtual void OnMouseDown()
+    {
+        if (GetDistanceFromCamera(transform.position) <= interactionDistance)
+        {
+            RemoveItem();
+        }
+    }
+
+    protected float GetDistanceFromCamera(Vector3 pos)
     {
         Transform camera = Camera.main.transform;
-        float dist = Vector3.Distance(camera.position, transform.position);
-        if (dist <= 2)
-            hud.ShowValue(value);
-        else
-            hud.HideValue();
+        float dist = Vector3.Distance(camera.position, pos);
+        Debug.Log(dist);
+        return dist;
     }
 
-    private void OnMouseExit()
+    private void RemoveItem()
     {
-        hud.HideValue();
-    }
-
-    private void OnMouseDown()
-    {
-        int money = (int)PhotonNetwork.LocalPlayer.CustomProperties["money"];
-        money += value;
-        Hashtable hash = new Hashtable();
-        hash.Add("money", money);
-        PhotonNetwork.LocalPlayer.SetCustomProperties(hash);
-        Debug.Log(money);
-        hud.HideValue();
+        isDestroyed = true;
+        hud.HideDescription();
         Destroy(gameObject);
-    }
-
-    public void SetValue(int _value)
-    {
-        value = _value;
     }
 }

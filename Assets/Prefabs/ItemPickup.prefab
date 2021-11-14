@@ -12,7 +12,7 @@ GameObject:
   - component: {fileID: 8212134206224006923}
   - component: {fileID: 8212134206224006922}
   - component: {fileID: 8212134206224006921}
-  - component: {fileID: 8212134206224006920}
+  - component: {fileID: 8843785150877450979}
   m_Layer: 0
   m_Name: ItemPickup
   m_TagString: Untagged
@@ -96,7 +96,7 @@ SphereCollider:
   serializedVersion: 2
   m_Radius: 1
   m_Center: {x: 0, y: 0, z: 0}
---- !u!114 &8212134206224006920
+--- !u!114 &8843785150877450979
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -105,6 +105,8 @@ MonoBehaviour:
   m_GameObject: {fileID: 8212134206224006919}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: d34f41bd823484056bf421c68a273708, type: 3}
+  m_Script: {fileID: 11500000, guid: 64b76d5adee2f4c97bd1f1a78f9615cc, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  description: 
+  isDestroyed: 0
