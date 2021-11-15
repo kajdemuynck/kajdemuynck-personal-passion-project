@@ -7,49 +7,50 @@ using Hashtable = ExitGames.Client.Photon.Hashtable;
 
 public class ItemPickup : MonoBehaviourPunCallbacks
 {
-    protected string description;
-    protected bool isDestroyed = false;
-    protected int interactionDistance = 2;
-    private HUD hud;
+    public string description;
+    public bool isDestroyed = false;
+    public int interactionDistance = 2;
 
-    protected virtual void Start()
+    ItemManager itemManager;
+
+    protected void Start()
     {
-        hud = GameObject.Find("HUD").GetComponent<HUD>();
+        itemManager = GameObject.Find("ItemManager").GetComponent<ItemManager>();
     }
 
-    protected void OnMouseOver()
+    public virtual void CheckInteraction()
     {
-        if (GetDistanceFromCamera(transform.position) <= interactionDistance && !isDestroyed)
-            hud.ShowDescription(description);
-        else
-            hud.HideDescription();
-    }
-
-    protected void OnMouseExit()
-    {
-        hud.HideDescription();
-    }
-
-    protected virtual void OnMouseDown()
-    {
-        if (GetDistanceFromCamera(transform.position) <= interactionDistance)
+        if (Input.GetMouseButtonDown(0))
         {
-            RemoveItem();
+            itemManager.RemoveItem(gameObject);
         }
     }
 
-    protected float GetDistanceFromCamera(Vector3 pos)
-    {
-        Transform camera = Camera.main.transform;
-        float dist = Vector3.Distance(camera.position, pos);
-        Debug.Log(dist);
-        return dist;
-    }
+    //protected void OnMouseOver()
+    //{
+    //    if (GetDistanceFromCamera(transform.position) <= interactionDistance && !isDestroyed)
+    //        hud.ShowDescription(description);
+    //    else
+    //        hud.HideDescription();
+    //}
 
-    private void RemoveItem()
-    {
-        isDestroyed = true;
-        hud.HideDescription();
-        Destroy(gameObject);
-    }
+    //protected void OnMouseExit()
+    //{
+    //    hud.HideDescription();
+    //}
+
+    //protected virtual void OnMouseDown()
+    //{
+    //    if (GetDistanceFromCamera(transform.position) <= interactionDistance)
+    //    {
+    //        RemoveItem();
+    //    }
+    //}
+
+    //protected float GetDistanceFromCamera(Vector3 pos)
+    //{
+    //    Transform camera = Camera.main.transform;
+    //    float dist = Vector3.Distance(camera.position, pos);
+    //    return dist;
+    //}
 }

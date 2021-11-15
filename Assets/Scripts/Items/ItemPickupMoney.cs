@@ -8,28 +8,29 @@ public class ItemPickupMoney : ItemPickup
 {
     private int value;
 
-    protected override void Start()
+    public override void CheckInteraction()
     {
-        base.Start();
-        value = (int)Random.Range(10f, 20f);
-        description = string.Format("Worth {0} dollars", value);
+        if (Input.GetMouseButtonDown(0))
+        {
+            CollectMoney();
+        }
+
+        base.CheckInteraction();
     }
 
-    protected override void OnMouseDown()
+    public void CollectMoney()
     {
-        if (base.GetDistanceFromCamera(transform.position) <= interactionDistance)
-        {
-            int money = (int)PhotonNetwork.LocalPlayer.CustomProperties["money"];
-            money += value;
-            Hashtable hash = new Hashtable();
-            hash.Add("money", money);
-            PhotonNetwork.LocalPlayer.SetCustomProperties(hash);
-        }
-        base.OnMouseDown();
+        int money = (int)PhotonNetwork.LocalPlayer.CustomProperties["money"];
+        money += value;
+        Hashtable hash = new Hashtable();
+        hash.Add("money", money);
+        PhotonNetwork.LocalPlayer.SetCustomProperties(hash);
+        Debug.Log(money);
     }
 
     public void SetValue(int _value)
     {
         value = _value;
+        description = string.Format("Worth {0} dollars", value);
     }
 }

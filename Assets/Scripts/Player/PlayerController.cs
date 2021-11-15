@@ -105,4 +105,12 @@ public class PlayerController : MonoBehaviourPunCallbacks
     {
         playerManager.Die();
     }
+
+    public override void OnPlayerPropertiesUpdate(Player targetPlayer, Hashtable changedProps)
+    {
+        if (!pv.IsMine && targetPlayer == pv.Owner)
+        {
+            // Do something
+        }
+    }
 }
