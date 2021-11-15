@@ -67,10 +67,7 @@ public class ItemManager : MonoBehaviour
 
     public void RemoveItem(GameObject item)
     {
-        item.GetComponent<ItemPickup>().isDestroyed = true;
-        itemsPickup.Remove(item.GetComponent<ItemPickup>());
-        hud.HideDescription();
-        Destroy(item);
+        pv.RPC("RPC_RemoveItem", RpcTarget.All, itemsPickup.IndexOf(item.GetComponent<ItemPickup>()));
     }
 
     protected bool CheckMouseOver()
@@ -96,5 +93,17 @@ public class ItemManager : MonoBehaviour
         {
             itemsPickupMoney[i].SetValue(values[i]);
         }
+    }
+
+    [PunRPC]
+    private void RPC_RemoveItem(int index)
+    {
+        //if (!pv.IsMine)
+        //    return;
+
+        GameObject item = itemsPickup[index].gameObject;
+        item.GetComponent<ItemPickup>().isDestroyed = true;
+        itemsPickup.Remove(item.GetComponent<ItemPickup>());
+        Destroy(item);
     }
 }
