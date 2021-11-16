@@ -7,6 +7,7 @@ using Hashtable = ExitGames.Client.Photon.Hashtable;
 
 public class ItemPickup : MonoBehaviourPunCallbacks
 {
+    public int id;
     public string description;
     public bool isDestroyed = false;
     public int interactionDistance = 2;

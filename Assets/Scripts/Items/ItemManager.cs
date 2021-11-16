@@ -13,7 +13,7 @@ public class ItemManager : MonoBehaviour
     private RaycastHit hit;
 
     private List<ItemPickup> itemsPickup;
-    private List<ItemPickupMoney> itemsPickupMoney;
+    private List<ItemPickupMoney> itemsPickupMoney = new List<ItemPickupMoney>();
 
     private void Awake()
     {
@@ -22,7 +22,30 @@ public class ItemManager : MonoBehaviour
 
         //itemsPickup = FindObjectsOfType<ItemPickup>();
         itemsPickup = new List<ItemPickup>(FindObjectsOfType<ItemPickup>());
-        itemsPickupMoney = new List<ItemPickupMoney>(FindObjectsOfType<ItemPickupMoney>());
+        SortList();
+    }
+
+    private void SortList()
+    {
+        foreach (ItemPickup item in itemsPickup)
+        {
+            string idChild = item.transform.GetSiblingIndex().ToString("000");
+            string idParent = item.transform.parent.GetSiblingIndex().ToString("000");
+            item.id = int.Parse(string.Format("{0}{1}", idChild, idParent));
+        }
+        //return new List<ItemPickup>();
+
+        itemsPickup.Sort(delegate (ItemPickup a, ItemPickup b) {
+            return (a.id).CompareTo(b.id);
+        });
+
+        foreach (ItemPickup item in itemsPickup)
+        {
+            if (item.gameObject.GetComponent<ItemPickupMoney>())
+            {
+                itemsPickupMoney.Add(item.GetComponent<ItemPickupMoney>());
+            }
+        }
     }
 
     public void Start()
@@ -43,7 +66,7 @@ public class ItemManager : MonoBehaviour
 
         if (CheckMouseOver())
         {
-            foreach (var item in itemsPickup)
+            foreach (ItemPickup item in itemsPickup)
             {
                 if (hit.collider.gameObject == item.gameObject && !item.isDestroyed && hit.distance <= item.interactionDistance)
                 {
