@@ -37,11 +37,11 @@ public class PlayerListItem : MonoBehaviourPunCallbacks
                 }
                 else if (ping > 100)
                 {
-                    pingText.color = colors[1];
+                    pingText.color = colors[2];
                 }
                 else
                 {
-                    pingText.color = colors[2];
+                    pingText.color = colors[1];
                 }
             }
             yield return new WaitForSeconds(2f);

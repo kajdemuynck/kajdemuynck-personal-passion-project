@@ -11,20 +11,47 @@ public class ItemPickup : MonoBehaviourPunCallbacks
     public string description;
     public bool isDestroyed = false;
     public int interactionDistance = 2;
+    private LayerMask EnvironmentLayer = 1 << 6;
+    private Ray ray;
+    private RaycastHit hit;
 
     ItemManager itemManager;
 
-    protected void Start()
+    protected void Awake()
     {
+        id = CreateID();
         itemManager = GameObject.Find("ItemManager").GetComponent<ItemManager>();
     }
 
     public virtual void CheckInteraction()
     {
-        if (Input.GetMouseButtonDown(0))
+        if (Input.GetMouseButtonDown(0) && !Application.isMobilePlatform)
         {
             itemManager.RemoveItem(gameObject);
         }
+        else if (Application.isMobilePlatform && Input.touchCount > 0)
+        {
+            for (int i = 0; i < Input.touchCount; i++)
+            {
+                Ray ray = Camera.main.ScreenPointToRay(Input.GetTouch(i).position); // position in px
+                ray.origin = Camera.main.transform.position;
+                if (Physics.Raycast(ray, out hit, 10f, ~EnvironmentLayer))
+                {
+                    if (hit.collider.gameObject == gameObject)
+                    {
+                        itemManager.RemoveItem(gameObject);
+                    }
+                    break;
+                }
+            }
+        }
+    }
+
+    private int CreateID()
+    {
+        string idChild = gameObject.transform.GetSiblingIndex().ToString("000");
+        string idParent = gameObject.transform.parent.GetSiblingIndex().ToString("000");
+        return int.Parse(string.Format("{0}{1}", idChild, idParent));
     }
 
     //protected void OnMouseOver()

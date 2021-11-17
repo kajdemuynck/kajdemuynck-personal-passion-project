@@ -19,37 +19,14 @@ public class ItemManager : MonoBehaviour
     {
         pv = GetComponent<PhotonView>();
         hud = GameObject.Find("HUD").GetComponent<HUD>();
-
-        //itemsPickup = FindObjectsOfType<ItemPickup>();
-        itemsPickup = new List<ItemPickup>(FindObjectsOfType<ItemPickup>());
-        SortList();
-    }
-
-    private void SortList()
-    {
-        foreach (ItemPickup item in itemsPickup)
-        {
-            string idChild = item.transform.GetSiblingIndex().ToString("000");
-            string idParent = item.transform.parent.GetSiblingIndex().ToString("000");
-            item.id = int.Parse(string.Format("{0}{1}", idChild, idParent));
-        }
-        //return new List<ItemPickup>();
-
-        itemsPickup.Sort(delegate (ItemPickup a, ItemPickup b) {
-            return (a.id).CompareTo(b.id);
-        });
-
-        foreach (ItemPickup item in itemsPickup)
-        {
-            if (item.gameObject.GetComponent<ItemPickupMoney>())
-            {
-                itemsPickupMoney.Add(item.GetComponent<ItemPickupMoney>());
-            }
-        }
     }
 
     public void Start()
     {
+
+        itemsPickup = new List<ItemPickup>(FindObjectsOfType<ItemPickup>());
+        SortList();
+
         if (PhotonNetwork.IsMasterClient)
         {
             int[] values = new int[itemsPickupMoney.Count];
@@ -86,6 +63,21 @@ public class ItemManager : MonoBehaviour
         }
 
         //Debug.Log(isLookingAtItem);
+    }
+
+    private void SortList()
+    {
+        itemsPickup.Sort(delegate (ItemPickup a, ItemPickup b) {
+            return (a.id).CompareTo(b.id);
+        });
+
+        foreach (ItemPickup item in itemsPickup)
+        {
+            if (item.gameObject.GetComponent<ItemPickupMoney>())
+            {
+                itemsPickupMoney.Add(item.GetComponent<ItemPickupMoney>());
+            }
+        }
     }
 
     public void RemoveItem(GameObject item)

@@ -16,6 +16,9 @@ public class PlayerController : MonoBehaviourPunCallbacks
     Vector3 smoothMoveVelocity;
     Vector3 moveAmount;
 
+    private Joystick moveJoystick;
+    private Joystick lookJoystick;
+
     Rigidbody rb;
     PhotonView pv;
     PlayerManager playerManager;
@@ -25,13 +28,25 @@ public class PlayerController : MonoBehaviourPunCallbacks
         rb = GetComponent<Rigidbody>();
         pv = GetComponent<PhotonView>();
 
+        if (pv.IsMine && Application.isMobilePlatform)
+        {
+            TouchControls tc = GameObject.Find("TouchControls").GetComponent<TouchControls>();
+            tc.ActivateControls();
+            moveJoystick = tc.MoveJoystick;
+            lookJoystick = tc.LookJoystick;
+        }
+
         playerManager = PhotonView.Find((int)pv.InstantiationData[0]).GetComponent<PlayerManager>();
     }
 
     private void Start()
     {
         Cursor.visible = false;
-        Cursor.lockState = CursorLockMode.Locked;
+
+        if (!Application.isMobilePlatform)
+            Cursor.lockState = CursorLockMode.Locked;
+        else
+            mouseSensitivity /= 2;
 
         if (pv.IsMine)
         {
@@ -73,9 +88,30 @@ public class PlayerController : MonoBehaviourPunCallbacks
 
     private void Look()
     {
-        transform.Rotate(Vector3.up * Input.GetAxisRaw("Mouse X") * mouseSensitivity);
+        float horizontal = 0f;
+        float vertical = 0f;
 
-        verticalLookRotation += Input.GetAxisRaw("Mouse Y") * mouseSensitivity;
+        if (!Application.isMobilePlatform)
+        {
+            horizontal = Input.GetAxisRaw("Mouse X");
+            vertical = Input.GetAxisRaw("Mouse Y");
+        }
+        else
+        {
+            float treshold = 0.2f;
+            if (lookJoystick.Horizontal >= treshold)
+                horizontal = 1f;
+            else if (lookJoystick.Horizontal <= -treshold)
+                horizontal = -1f;
+            if (lookJoystick.Vertical >= treshold)
+                vertical = 1f;
+            else if (lookJoystick.Vertical <= -treshold)
+                vertical = -1f;
+        }
+
+        transform.Rotate(Vector3.up * horizontal * mouseSensitivity);
+
+        verticalLookRotation += vertical * mouseSensitivity;
         verticalLookRotation = Mathf.Clamp(verticalLookRotation, -90f, 90f);
 
         cameraContainer.transform.localEulerAngles = Vector3.left * verticalLookRotation;
@@ -83,7 +119,27 @@ public class PlayerController : MonoBehaviourPunCallbacks
 
     private void Move()
     {
-        Vector3 moveDir = new Vector3(Input.GetAxisRaw("Horizontal"), 0, Input.GetAxisRaw("Vertical")).normalized;
+        float horizontal = 0f;
+        float vertical = 0f;
+        if (!Application.isMobilePlatform)
+        {
+            horizontal = Input.GetAxisRaw("Horizontal");
+            vertical = Input.GetAxisRaw("Vertical");
+        }
+        else
+        {
+            float treshold = 0.2f;
+            if (moveJoystick.Horizontal >= treshold)
+                horizontal = 1f;
+            else if (moveJoystick.Horizontal <= -treshold)
+                horizontal = -1f;
+            if (moveJoystick.Vertical >= treshold)
+                vertical = 1f;
+            else if (moveJoystick.Vertical <= -treshold)
+                vertical = -1f;
+        }
+
+        Vector3 moveDir = new Vector3(horizontal, 0, vertical).normalized;
 
         moveAmount = Vector3.SmoothDamp(moveAmount, moveDir * (Input.GetKey(KeyCode.LeftShift) ? sprintSpeed : walkSpeed), ref smoothMoveVelocity, smoothTime);
     }
