@@ -6,6 +6,7 @@ using Photon.Pun;
 using Photon.Realtime;
 using TMPro;
 using Hashtable = ExitGames.Client.Photon.Hashtable;
+using UnityEngine.UI;
 
 public class Launcher : MonoBehaviourPunCallbacks
 {
@@ -21,6 +22,10 @@ public class Launcher : MonoBehaviourPunCallbacks
     [SerializeField] GameObject roomListItemPrefab;
     [SerializeField] GameObject playerListItemPrefab;
     [SerializeField] GameObject startGameButton;
+    [SerializeField] Toggle publicToggle;
+
+    private byte maxPlayersPerRoom = 6;
+    private List<string> roomListNames = new List<string>();
 
     // Setup
 
@@ -83,20 +88,37 @@ public class Launcher : MonoBehaviourPunCallbacks
 
     public void CreateRoom()
     {
-        if (string.IsNullOrEmpty(roomNameInput.text))
-            return;
+        //Hashtable hash = new Hashtable();
+        //hash.Add("Access", "private");
 
-        RoomOptions roomOptions = new RoomOptions();
-        roomOptions.MaxPlayers = 6;
-        PhotonNetwork.CreateRoom(roomNameInput.text, roomOptions, null);
+        RoomOptions roomOptions = new RoomOptions()
+        {
+            MaxPlayers = maxPlayersPerRoom,
+            IsVisible = false
+        };
+        roomOptions.BroadcastPropsChangeToAll = true;
+        //roomOptions.CustomRoomPropertiesForLobby = new string[]
+        //{
+        //     "Access"
+        //};
+        PhotonNetwork.CreateRoom(GenerateUniqueRoomName(), roomOptions, null);
         MenuManager.Instance.OpenMenu("loading");
-        PlayerPrefs.SetString("roomname", roomNameInput.text);
+        //PlayerPrefs.SetString("roomname", roomNameInput.text);
     }
 
     public override void OnCreateRoomFailed(short returnCode, string message)
     {
         //errorText.text = "Room creation failed: " + message;
         MenuManager.Instance.OpenMenu("error");
+    }
+
+    public void OnAccessStateChanged()
+    {
+        Debug.Log(publicToggle.isOn);
+        PhotonNetwork.CurrentRoom.IsVisible = publicToggle.isOn;
+        //Hashtable hash = new Hashtable();
+        //hash.Add("Access", publicToggle.isOn ? "public" : "private");
+        //PhotonNetwork.CurrentRoom.SetCustomProperties(hash);
     }
 
     // Find room
@@ -107,10 +129,21 @@ public class Launcher : MonoBehaviourPunCallbacks
         MenuManager.Instance.OpenMenu("loading");
     }
 
+    public void JoinRoom(string code)
+    {
+        PhotonNetwork.JoinRoom(code);
+        MenuManager.Instance.OpenMenu("loading");
+    }
+
     public override void OnJoinRoomFailed(short returnCode, string message)
     {
         //errorText.text = "Room creation failed: " + message;
         MenuManager.Instance.OpenMenu("error");
+    }
+
+    public void JoinRandomRoom()
+    {
+        PhotonNetwork.JoinRandomRoom();
     }
 
     // Room
@@ -130,6 +163,12 @@ public class Launcher : MonoBehaviourPunCallbacks
         for (int i = 0; i < players.Length; i++)
         {
             Instantiate(playerListItemPrefab, playerListContent).GetComponent<PlayerListItem>().Setup(players[i]);
+        }
+
+        if (!PhotonNetwork.IsMasterClient)
+        {
+            publicToggle.interactable = false;
+            publicToggle.transform.GetChild(0).gameObject.SetActive(false);
         }
 
         startGameButton.SetActive(PhotonNetwork.IsMasterClient);
@@ -161,6 +200,7 @@ public class Launcher : MonoBehaviourPunCallbacks
 
     public override void OnRoomListUpdate(List<RoomInfo> roomList)
     {
+        roomListNames.Clear();
         foreach (Transform t in roomListContainer)
         {
             Destroy(t.gameObject);
@@ -172,13 +212,19 @@ public class Launcher : MonoBehaviourPunCallbacks
             {
                 continue;
             }
-            Instantiate(roomListItemPrefab, roomListContainer).GetComponent<RoomListItem>().Setup(roomList[i]);
+            roomListNames.Add(roomList[i].Name);
+            //Debug.Log(string.Format("{0}: {1}", roomList[i].Name, (string) roomList[i].CustomProperties["Access"]));
+
+            if (roomList[i].IsVisible)
+            {
+                Instantiate(roomListItemPrefab, roomListContainer).GetComponent<RoomListItem>().Setup(roomList[i]);
+            }
         }
     }
 
     public IEnumerator UpdatePing()
     {
-        while (true)
+        while (true && PhotonNetwork.IsConnected)
         {
             Hashtable hash = new Hashtable();
             hash.Add("ping", PhotonNetwork.GetPing());
@@ -197,5 +243,23 @@ public class Launcher : MonoBehaviourPunCallbacks
     public void QuitGame()
     {
         Application.Quit();
+    }
+
+    // Miscellaneous
+
+    private string GenerateUniqueRoomName()
+    {
+        bool isTaken = false;
+        string roomName;
+
+        do
+        {
+            roomName = ((int)Random.Range(0, 1000)).ToString("000");
+            for (int i = 0; i < roomListNames.Count; i++)
+                if (name == roomListNames[i])
+                    isTaken = true;
+        } while (isTaken);
+
+        return roomName;
     }
 }
