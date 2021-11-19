@@ -7,6 +7,8 @@ using Photon.Realtime;
 using TMPro;
 using Hashtable = ExitGames.Client.Photon.Hashtable;
 using UnityEngine.UI;
+using ZXing;
+using ZXing.QrCode;
 
 public class Launcher : MonoBehaviourPunCallbacks
 {
@@ -17,12 +19,17 @@ public class Launcher : MonoBehaviourPunCallbacks
     [SerializeField] TMP_InputField usernameInput;
     [SerializeField] TMP_InputField roomNameInput;
     [SerializeField] TMP_Text roomNameText;
+    [SerializeField] TMP_Text roomsAmountText;
+    [SerializeField] TMP_Text roomCodeError;
     [SerializeField] Transform roomListContainer;
     [SerializeField] Transform playerListContent;
     [SerializeField] GameObject roomListItemPrefab;
     [SerializeField] GameObject playerListItemPrefab;
     [SerializeField] GameObject startGameButton;
     [SerializeField] Toggle publicToggle;
+
+    [SerializeField] private RawImage rawImageQRcode;
+    private Texture2D encodedQRcode;
 
     private byte maxPlayersPerRoom = 6;
     private List<string> roomListNames = new List<string>();
@@ -41,6 +48,7 @@ public class Launcher : MonoBehaviourPunCallbacks
         if (PlayerPrefs.HasKey("roomname"))
             roomNameInput.text = PlayerPrefs.GetString("roomname");
         MenuManager.Instance.OpenMenu("login");
+        encodedQRcode = new Texture2D(256, 256);
     }
 
     // Connecting
@@ -129,16 +137,28 @@ public class Launcher : MonoBehaviourPunCallbacks
         MenuManager.Instance.OpenMenu("loading");
     }
 
-    public void JoinRoom(string code)
+    public void JoinRoom(TMP_InputField inputField)
     {
-        PhotonNetwork.JoinRoom(code);
-        MenuManager.Instance.OpenMenu("loading");
+        string code = inputField.text;
+        bool isJoined = PhotonNetwork.JoinRoom(code);
+        Debug.Log(isJoined);
+        if (isJoined)
+        {
+            MenuManager.Instance.OpenMenu("loading");
+            roomCodeError.gameObject.SetActive(false);
+        }
+        else
+        {
+            roomCodeError.text = "Room is full or doesn't exist";
+            roomCodeError.gameObject.SetActive(true);
+        }
     }
 
     public override void OnJoinRoomFailed(short returnCode, string message)
     {
-        //errorText.text = "Room creation failed: " + message;
-        MenuManager.Instance.OpenMenu("error");
+        roomCodeError.text = "Room joining failed: " + message;
+        roomCodeError.gameObject.SetActive(true);
+        //MenuManager.Instance.OpenMenu("error");
     }
 
     public void JoinRandomRoom()
@@ -152,6 +172,8 @@ public class Launcher : MonoBehaviourPunCallbacks
     {
         roomNameText.text = PhotonNetwork.CurrentRoom.Name;
         MenuManager.Instance.OpenMenu("room");
+
+        EncodeTextToQRcode(PhotonNetwork.CurrentRoom.Name);
 
         Player[] players = PhotonNetwork.PlayerList;
         
@@ -188,6 +210,7 @@ public class Launcher : MonoBehaviourPunCallbacks
 
     public override void OnLeftRoom()
     {
+        base.OnLeftRoom();
         MenuManager.Instance.OpenMenu("main");
     }
 
@@ -206,6 +229,7 @@ public class Launcher : MonoBehaviourPunCallbacks
             Destroy(t.gameObject);
         }
 
+        int rooms = 0;
         for (int i = 0; i < roomList.Count; i++)
         {
             if (roomList[i].RemovedFromList)
@@ -217,9 +241,11 @@ public class Launcher : MonoBehaviourPunCallbacks
 
             if (roomList[i].IsVisible)
             {
+                rooms++;
                 Instantiate(roomListItemPrefab, roomListContainer).GetComponent<RoomListItem>().Setup(roomList[i]);
             }
         }
+        roomsAmountText.text = string.Format("({0})", rooms);
     }
 
     public IEnumerator UpdatePing()
@@ -254,12 +280,35 @@ public class Launcher : MonoBehaviourPunCallbacks
 
         do
         {
-            roomName = ((int)Random.Range(0, 1000)).ToString("000");
+            roomName = (Random.Range(0, 10000)).ToString("0000");
             for (int i = 0; i < roomListNames.Count; i++)
                 if (name == roomListNames[i])
                     isTaken = true;
         } while (isTaken);
 
         return roomName;
+    }
+
+    private Color32[] EncodeBarcode(string code, int width, int height)
+    {
+        BarcodeWriter writer = new BarcodeWriter
+        {
+            Format = BarcodeFormat.QR_CODE,
+            Options = new QrCodeEncodingOptions
+            {
+                Width = width,
+                Height = height
+            }
+        };
+
+        return writer.Write(code);
+    }
+
+    private void EncodeTextToQRcode(string code)
+    {
+        Color32[] convertPixelToTexture = EncodeBarcode(code, encodedQRcode.width, encodedQRcode.height);
+        encodedQRcode.SetPixels32(convertPixelToTexture);
+        encodedQRcode.Apply();
+        rawImageQRcode.texture = encodedQRcode;
     }
 }
