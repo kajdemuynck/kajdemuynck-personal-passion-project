@@ -26,6 +26,7 @@ public class Launcher : MonoBehaviourPunCallbacks
     [SerializeField] GameObject roomListItemPrefab;
     [SerializeField] GameObject playerListItemPrefab;
     [SerializeField] GameObject startGameButton;
+    [SerializeField] GameObject scanCodeButton;
     [SerializeField] Toggle publicToggle;
 
     [SerializeField] private RawImage rawImageQRcode;
@@ -45,10 +46,11 @@ public class Launcher : MonoBehaviourPunCallbacks
     {
         if (PlayerPrefs.HasKey("username"))
             usernameInput.text = PlayerPrefs.GetString("username");
-        if (PlayerPrefs.HasKey("roomname"))
-            roomNameInput.text = PlayerPrefs.GetString("roomname");
         MenuManager.Instance.OpenMenu("login");
         encodedQRcode = new Texture2D(256, 256);
+
+        if (!Application.isMobilePlatform)
+            scanCodeButton.gameObject.SetActive(false);
     }
 
     // Connecting
@@ -96,19 +98,12 @@ public class Launcher : MonoBehaviourPunCallbacks
 
     public void CreateRoom()
     {
-        //Hashtable hash = new Hashtable();
-        //hash.Add("Access", "private");
-
         RoomOptions roomOptions = new RoomOptions()
         {
             MaxPlayers = maxPlayersPerRoom,
             IsVisible = false
         };
         roomOptions.BroadcastPropsChangeToAll = true;
-        //roomOptions.CustomRoomPropertiesForLobby = new string[]
-        //{
-        //     "Access"
-        //};
         PhotonNetwork.CreateRoom(GenerateUniqueRoomName(), roomOptions, null);
         MenuManager.Instance.OpenMenu("loading");
         //PlayerPrefs.SetString("roomname", roomNameInput.text);
@@ -122,11 +117,7 @@ public class Launcher : MonoBehaviourPunCallbacks
 
     public void OnAccessStateChanged()
     {
-        Debug.Log(publicToggle.isOn);
         PhotonNetwork.CurrentRoom.IsVisible = publicToggle.isOn;
-        //Hashtable hash = new Hashtable();
-        //hash.Add("Access", publicToggle.isOn ? "public" : "private");
-        //PhotonNetwork.CurrentRoom.SetCustomProperties(hash);
     }
 
     // Find room
@@ -139,7 +130,11 @@ public class Launcher : MonoBehaviourPunCallbacks
 
     public void JoinRoom(TMP_InputField inputField)
     {
-        string code = inputField.text;
+        JoinRoom(inputField.text);
+    }
+
+    public void JoinRoom(string code)
+    {
         bool isJoined = PhotonNetwork.JoinRoom(code);
         Debug.Log(isJoined);
         if (isJoined)
@@ -194,7 +189,6 @@ public class Launcher : MonoBehaviourPunCallbacks
         }
 
         startGameButton.SetActive(PhotonNetwork.IsMasterClient);
-        
     }
 
     public override void OnPlayerEnteredRoom(Player newPlayer)
@@ -217,6 +211,8 @@ public class Launcher : MonoBehaviourPunCallbacks
     public override void OnMasterClientSwitched(Player newMasterClient)
     {
         startGameButton.SetActive(PhotonNetwork.IsMasterClient);
+        publicToggle.interactable = true;
+        publicToggle.transform.GetChild(0).gameObject.SetActive(true);
     }
 
     // Update
@@ -230,6 +226,7 @@ public class Launcher : MonoBehaviourPunCallbacks
         }
 
         int rooms = 0;
+        bool roomFound = false;
         for (int i = 0; i < roomList.Count; i++)
         {
             if (roomList[i].RemovedFromList)
@@ -239,13 +236,46 @@ public class Launcher : MonoBehaviourPunCallbacks
             roomListNames.Add(roomList[i].Name);
             //Debug.Log(string.Format("{0}: {1}", roomList[i].Name, (string) roomList[i].CustomProperties["Access"]));
 
+            Debug.Log(PhotonNetwork.InRoom);
+            if (PhotonNetwork.InRoom)
+            {
+                Debug.Log(PhotonNetwork.CurrentRoom.Name);
+                Debug.Log(roomList[i].Name);
+            }
+
+            if (PhotonNetwork.InRoom && PhotonNetwork.CurrentRoom.Name == roomList[i].Name)
+            {
+                roomFound = true;
+            }
+
             if (roomList[i].IsVisible)
             {
                 rooms++;
                 Instantiate(roomListItemPrefab, roomListContainer).GetComponent<RoomListItem>().Setup(roomList[i]);
             }
         }
+
         roomsAmountText.text = string.Format("({0})", rooms);
+
+        Text toggleText = publicToggle.transform.GetChild(1).gameObject.GetComponent<Text>();
+
+        if (PhotonNetwork.InRoom && !PhotonNetwork.IsMasterClient)
+        {
+            Debug.Log("Registering change");
+            if (roomFound)
+                toggleText.text = "Private";
+            else
+                toggleText.text = "Public";
+        }
+        else
+            toggleText.text = "Public";
+    }
+
+    public override void OnRoomPropertiesUpdate(Hashtable propertiesThatChanged)
+    {
+        Debug.Log("Registering change");
+        Text toggleText = publicToggle.transform.GetChild(1).gameObject.GetComponent<Text>();
+        toggleText.text = PhotonNetwork.CurrentRoom.IsVisible ? "Public" : "Private";
     }
 
     public IEnumerator UpdatePing()
