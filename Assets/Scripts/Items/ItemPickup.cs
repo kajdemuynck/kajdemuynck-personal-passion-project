@@ -8,9 +8,10 @@ using Hashtable = ExitGames.Client.Photon.Hashtable;
 public class ItemPickup : MonoBehaviourPunCallbacks
 {
     public int id;
-    public string description;
-    public bool isDestroyed = false;
-    public int interactionDistance = 2;
+    public string description = "[ITEM]";
+    public bool isPickedUp = false;
+    public float interactionDistance = 2f;
+
     private LayerMask EnvironmentLayer = 1 << 6;
     private Ray ray;
     private RaycastHit hit;
@@ -56,7 +57,7 @@ public class ItemPickup : MonoBehaviourPunCallbacks
 
     //protected void OnMouseOver()
     //{
-    //    if (GetDistanceFromCamera(transform.position) <= interactionDistance && !isDestroyed)
+    //    if (GetDistanceFromCamera(transform.position) <= interactionDistance && !isPickedUp)
     //        hud.ShowDescription(description);
     //    else
     //        hud.HideDescription();

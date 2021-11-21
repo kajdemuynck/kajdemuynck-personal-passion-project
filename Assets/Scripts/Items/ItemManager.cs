@@ -13,7 +13,7 @@ public class ItemManager : MonoBehaviour
     private RaycastHit hit;
 
     private List<ItemPickup> itemsPickup;
-    private List<ItemPickupMoney> itemsPickupMoney = new List<ItemPickupMoney>();
+    private List<ItemPickupMoney> itemsPickupMoney;
 
     private void Awake()
     {
@@ -23,17 +23,13 @@ public class ItemManager : MonoBehaviour
 
     public void Start()
     {
-
         itemsPickup = new List<ItemPickup>(FindObjectsOfType<ItemPickup>());
+        itemsPickupMoney = new List<ItemPickupMoney>();
         SortList();
 
         if (PhotonNetwork.IsMasterClient)
         {
-            int[] values = new int[itemsPickupMoney.Count];
-            for (int i = 0; i < values.Length; i++)
-                values[i] = (int)Random.Range(10f, 20f);
-
-            InitItemPickupsMoney(values);
+            InitItemPickupsMoney();
         }
     }
 
@@ -45,7 +41,7 @@ public class ItemManager : MonoBehaviour
         {
             foreach (ItemPickup item in itemsPickup)
             {
-                if (hit.collider.gameObject == item.gameObject && !item.isDestroyed && hit.distance <= item.interactionDistance)
+                if (hit.collider.gameObject == item.gameObject && !item.isPickedUp && hit.distance <= item.interactionDistance)
                 {
                     isLookingAtItem = true;
                     hud.ShowDescription(item.description);
@@ -80,11 +76,6 @@ public class ItemManager : MonoBehaviour
         }
     }
 
-    public void RemoveItem(GameObject item)
-    {
-        pv.RPC("RPC_RemoveItem", RpcTarget.All, itemsPickup.IndexOf(item.GetComponent<ItemPickup>()));
-    }
-
     protected bool CheckMouseOver()
     {
         Ray ray = Camera.main.ViewportPointToRay(new Vector3(0.5f, 0.5f)); // 0.5 = center of the screen
@@ -93,21 +84,25 @@ public class ItemManager : MonoBehaviour
         //PV.RPC("RPC_Shoot", RpcTarget.All, hit.point, hit.normal);
     }
 
-    public void InitItemPickupsMoney(int[] values)
+    public void InitItemPickupsMoney()
     {
+        int[] values = new int[itemsPickupMoney.Count];
+        for (int i = 0; i < values.Length; i++)
+            values[i] = (int)Random.Range(10f, 20f);
+
         pv.RPC("RPC_InitItemPickupsMoney", RpcTarget.All, values);
     }
 
     [PunRPC]
     private void RPC_InitItemPickupsMoney(int[] values)
     {
-        //if (!pv.IsMine)
-        //    return;
-
         for (int i = 0; i < itemsPickupMoney.Count; i++)
-        {
             itemsPickupMoney[i].SetValue(values[i]);
-        }
+    }
+
+    public void RemoveItem(GameObject item)
+    {
+        pv.RPC("RPC_RemoveItem", RpcTarget.All, itemsPickup.IndexOf(item.GetComponent<ItemPickup>()));
     }
 
     [PunRPC]
@@ -117,7 +112,7 @@ public class ItemManager : MonoBehaviour
         //    return;
 
         GameObject item = itemsPickup[index].gameObject;
-        item.GetComponent<ItemPickup>().isDestroyed = true;
+        item.GetComponent<ItemPickup>().isPickedUp = true;
         itemsPickup.Remove(item.GetComponent<ItemPickup>());
         Destroy(item);
     }
