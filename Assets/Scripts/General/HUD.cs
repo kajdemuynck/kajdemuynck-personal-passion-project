@@ -10,7 +10,7 @@ public class HUD : MonoBehaviour
 
     private void Start()
     {
-        if (!Application.isMobilePlatform)
+        if (Application.isMobilePlatform)
             touchControls.gameObject.SetActive(true);
     }
 

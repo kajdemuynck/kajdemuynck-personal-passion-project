@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.InputSystem;
 using Photon.Pun;
 using Hashtable = ExitGames.Client.Photon.Hashtable;
 
@@ -8,14 +9,14 @@ public class ItemPickupMoney : ItemPickup
 {
     private int value;
 
-    public override void CheckInteraction()
+    public override void CheckInteraction(PlayerInput playerInput)
     {
-        if (Input.GetMouseButtonDown(0))
+        if (Mouse.current.leftButton.isPressed)
         {
             CollectMoney();
         }
 
-        base.CheckInteraction();
+        base.CheckInteraction(playerInput);
     }
 
     public void CollectMoney()

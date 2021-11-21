@@ -11,6 +11,7 @@ GameObject:
   - component: {fileID: 4883725425007681498}
   - component: {fileID: 6082960305374404208}
   - component: {fileID: 5206660660661816853}
+  - component: {fileID: 6128544238466889779}
   m_Layer: 0
   m_Name: ItemManager
   m_TagString: Untagged
@@ -67,7 +68,52 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   isLookingAtItem: 0
-  hud: {fileID: 0}
   EnvironmentLayer:
     serializedVersion: 2
     m_Bits: 64
+--- !u!114 &6128544238466889779
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 896034181324737397}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 62899f850307741f2a39c98a8b639597, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  m_Actions: {fileID: -944628639613478452, guid: b1e508e6e796e4dae95227e9f1e246fa, type: 3}
+  m_NotificationBehavior: 2
+  m_UIInputModule: {fileID: 0}
+  m_DeviceLostEvent:
+    m_PersistentCalls:
+      m_Calls: []
+  m_DeviceRegainedEvent:
+    m_PersistentCalls:
+      m_Calls: []
+  m_ControlsChangedEvent:
+    m_PersistentCalls:
+      m_Calls: []
+  m_ActionEvents:
+  - m_PersistentCalls:
+      m_Calls: []
+    m_ActionId: e2098226-0f3d-4fdc-8f92-63a48572a451
+    m_ActionName: Actions/Move[/Keyboard/w,/Keyboard/s,/Keyboard/a,/Keyboard/d,/DualShock3GamepadHID/leftStick]
+  - m_PersistentCalls:
+      m_Calls: []
+    m_ActionId: cd53a5fe-3143-4d7b-ad83-0baabf0d63f4
+    m_ActionName: Actions/Look[/Mouse/delta,/DualShock3GamepadHID/rightStick]
+  - m_PersistentCalls:
+      m_Calls: []
+    m_ActionId: 750dd55b-682f-49ac-b2ce-7d0a25b4b9ab
+    m_ActionName: Actions/Jump[/Keyboard/space,/DualShock3GamepadHID/buttonSouth]
+  - m_PersistentCalls:
+      m_Calls: []
+    m_ActionId: 2743828a-7f0d-4167-98d1-15b1e7061cab
+    m_ActionName: Actions/Interact[/Mouse/leftButton,/DualShock3GamepadHID/rightShoulder,/DualShock3GamepadHID/buttonNorth]
+  m_NeverAutoSwitchControlSchemes: 0
+  m_DefaultControlScheme: 
+  m_DefaultActionMap: Actions
+  m_SplitScreenIndex: -1
+  m_Camera: {fileID: 0}

@@ -4,10 +4,16 @@ using Photon.Pun;
 using Photon.Realtime;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.InputSystem;
 using Hashtable = ExitGames.Client.Photon.Hashtable;
 
 public class PlayerController : MonoBehaviourPunCallbacks
 {
+    private PlayerInput playerInput;
+    private InputAction moveAction;
+    private InputAction lookAction;
+    private InputAction jumpAction;
+
     [SerializeField] GameObject cameraContainer;
     [SerializeField] float mouseSensitivity, walkSpeed, sprintSpeed, jumpSpeed, smoothTime;
 
@@ -25,6 +31,11 @@ public class PlayerController : MonoBehaviourPunCallbacks
 
     private void Awake()
     {
+        playerInput = GetComponent<PlayerInput>();
+        moveAction = playerInput.actions["Move"];
+        lookAction = playerInput.actions["Look"];
+        jumpAction = playerInput.actions["Jump"];
+
         rb = GetComponent<Rigidbody>();
         pv = GetComponent<PhotonView>();
 
@@ -93,20 +104,20 @@ public class PlayerController : MonoBehaviourPunCallbacks
 
         if (!Application.isMobilePlatform)
         {
-            horizontal = Input.GetAxisRaw("Mouse X");
-            vertical = Input.GetAxisRaw("Mouse Y");
+            horizontal = lookAction.ReadValue<Vector2>().x;
+            vertical = lookAction.ReadValue<Vector2>().y;
         }
         else
         {
             float treshold = 0.2f;
             if (lookJoystick.Horizontal >= treshold)
-                horizontal = 1f;
+                horizontal = (lookJoystick.Horizontal - treshold) * 4;
             else if (lookJoystick.Horizontal <= -treshold)
-                horizontal = -1f;
+                horizontal = (lookJoystick.Horizontal + treshold) * 4;
             if (lookJoystick.Vertical >= treshold)
-                vertical = 1f;
+                vertical = (lookJoystick.Vertical - treshold) * 2;
             else if (lookJoystick.Vertical <= -treshold)
-                vertical = -1f;
+                vertical = (lookJoystick.Vertical + treshold) * 2;
         }
 
         transform.Rotate(Vector3.up * horizontal * mouseSensitivity);
@@ -123,8 +134,10 @@ public class PlayerController : MonoBehaviourPunCallbacks
         float vertical = 0f;
         if (!Application.isMobilePlatform)
         {
-            horizontal = Input.GetAxisRaw("Horizontal");
-            vertical = Input.GetAxisRaw("Vertical");
+            horizontal = moveAction.ReadValue<Vector2>().x;
+            vertical = moveAction.ReadValue<Vector2>().y;
+            //horizontal = Input.GetAxisRaw("Horizontal");
+            //vertical = Input.GetAxisRaw("Vertical");
         }
         else
         {
@@ -141,14 +154,15 @@ public class PlayerController : MonoBehaviourPunCallbacks
 
         Vector3 moveDir = new Vector3(horizontal, 0, vertical).normalized;
 
-        moveAmount = Vector3.SmoothDamp(moveAmount, moveDir * (Input.GetKey(KeyCode.LeftShift) ? sprintSpeed : walkSpeed), ref smoothMoveVelocity, smoothTime);
+        moveAmount = Vector3.SmoothDamp(moveAmount, moveDir * /*Input.GetKey(KeyCode.LeftShift) ? sprintSpeed :*/ walkSpeed, ref smoothMoveVelocity, smoothTime);
     }
 
     private void Jump()
     {
-        if (Input.GetKeyDown(KeyCode.Space) && grounded)
+        if (jumpAction.ReadValue<float>() > 0 && grounded)
         {
-            rb.AddForce(transform.up * jumpSpeed * 100);
+            rb.AddForce(transform.up * jumpSpeed * 25);
+            grounded = false;
         }
     }
 

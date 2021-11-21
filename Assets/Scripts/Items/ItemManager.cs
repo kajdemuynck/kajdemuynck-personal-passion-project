@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using Photon.Pun;
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 public class ItemManager : MonoBehaviour
 {
@@ -12,11 +13,14 @@ public class ItemManager : MonoBehaviour
     private Ray ray;
     private RaycastHit hit;
 
+    private PlayerInput playerInput;
+
     private List<ItemPickup> itemsPickup;
     private List<ItemPickupMoney> itemsPickupMoney;
 
     private void Awake()
     {
+        playerInput = GetComponent<PlayerInput>();
         pv = GetComponent<PhotonView>();
         hud = GameObject.Find("HUD").GetComponent<HUD>();
     }
@@ -45,7 +49,7 @@ public class ItemManager : MonoBehaviour
                 {
                     isLookingAtItem = true;
                     hud.ShowDescription(item.description);
-                    item.CheckInteraction();
+                    item.CheckInteraction(playerInput);
                     break;
                 }
             }
