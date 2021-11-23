@@ -44,9 +44,10 @@ public class Launcher : MonoBehaviourPunCallbacks
 
     void Start()
     {
-        if (PlayerPrefs.HasKey("username"))
-            usernameInput.text = PlayerPrefs.GetString("username");
-        MenuManager.Instance.OpenMenu("login");
+        //if (PlayerPrefs.HasKey("username"))
+        //    usernameInput.text = PlayerPrefs.GetString("username");
+        //MenuManager.Instance.OpenMenu("login");
+        ConnectToServer();
         encodedQRcode = new Texture2D(256, 256);
 
         if (!Application.isMobilePlatform)
@@ -57,16 +58,13 @@ public class Launcher : MonoBehaviourPunCallbacks
 
     public void ConnectToServer()
     {
-        string username = usernameInput.text;
-        if (username != "")
-        {
-            Debug.Log("Connecting to server...");
-            PhotonNetwork.NickName = username;
-            PlayerPrefs.SetString("username", username);
-            PhotonNetwork.GameVersion = "0.0.1";
-            PhotonNetwork.ConnectUsingSettings();
-            MenuManager.Instance.OpenMenu("connecting");
-        }
+        //string username = usernameInput.text;
+        Debug.Log("Connecting to server...");
+        PhotonNetwork.NickName = GenerateUniqueUsername();
+        //PlayerPrefs.SetString("username", username);
+        PhotonNetwork.GameVersion = "0.0.1";
+        PhotonNetwork.ConnectUsingSettings();
+        MenuManager.Instance.OpenMenu("connecting");
     }
 
     public override void OnConnectedToMaster()
@@ -136,7 +134,6 @@ public class Launcher : MonoBehaviourPunCallbacks
     public void JoinRoom(string code)
     {
         bool isJoined = PhotonNetwork.JoinRoom(code);
-        Debug.Log(isJoined);
         if (isJoined)
         {
             MenuManager.Instance.OpenMenu("loading");
@@ -226,7 +223,6 @@ public class Launcher : MonoBehaviourPunCallbacks
         }
 
         int rooms = 0;
-        bool roomFound = false;
         for (int i = 0; i < roomList.Count; i++)
         {
             if (roomList[i].RemovedFromList)
@@ -236,18 +232,6 @@ public class Launcher : MonoBehaviourPunCallbacks
             roomListNames.Add(roomList[i].Name);
             //Debug.Log(string.Format("{0}: {1}", roomList[i].Name, (string) roomList[i].CustomProperties["Access"]));
 
-            Debug.Log(PhotonNetwork.InRoom);
-            if (PhotonNetwork.InRoom)
-            {
-                Debug.Log(PhotonNetwork.CurrentRoom.Name);
-                Debug.Log(roomList[i].Name);
-            }
-
-            if (PhotonNetwork.InRoom && PhotonNetwork.CurrentRoom.Name == roomList[i].Name)
-            {
-                roomFound = true;
-            }
-
             if (roomList[i].IsVisible)
             {
                 rooms++;
@@ -256,26 +240,12 @@ public class Launcher : MonoBehaviourPunCallbacks
         }
 
         roomsAmountText.text = string.Format("({0})", rooms);
-
-        Text toggleText = publicToggle.transform.GetChild(1).gameObject.GetComponent<Text>();
-
-        if (PhotonNetwork.InRoom && !PhotonNetwork.IsMasterClient)
-        {
-            Debug.Log("Registering change");
-            if (roomFound)
-                toggleText.text = "Private";
-            else
-                toggleText.text = "Public";
-        }
-        else
-            toggleText.text = "Public";
     }
 
     public override void OnRoomPropertiesUpdate(Hashtable propertiesThatChanged)
     {
-        Debug.Log("Registering change");
         Text toggleText = publicToggle.transform.GetChild(1).gameObject.GetComponent<Text>();
-        toggleText.text = PhotonNetwork.CurrentRoom.IsVisible ? "Public" : "Private";
+        toggleText.text = !PhotonNetwork.CurrentRoom.IsVisible && !PhotonNetwork.IsMasterClient ? "Private" : "Public";
     }
 
     public IEnumerator UpdatePing()
@@ -314,7 +284,8 @@ public class Launcher : MonoBehaviourPunCallbacks
             for (int i = 0; i < roomListNames.Count; i++)
                 if (name == roomListNames[i])
                     isTaken = true;
-        } while (isTaken);
+        }
+        while (isTaken);
 
         return roomName;
     }
@@ -340,5 +311,21 @@ public class Launcher : MonoBehaviourPunCallbacks
         encodedQRcode.SetPixels32(convertPixelToTexture);
         encodedQRcode.Apply();
         rawImageQRcode.texture = encodedQRcode;
+    }
+
+    private string GenerateUniqueUsername()
+    {
+        string[] adjectives = new string[] { "Fluffy", "Adorable", "Charming", "Generous", "Courageous", "Plucky", "Fabulous", "Rousing", "Dazzling", "Lustrous", "Ravishing", "Spellbinding", "Nifty", "Gnarly", "Bodacious", "Magnificent", "Outlandish", "Quirky", "Whimsical", "Pompous" };
+        string[] nouns = new string[] { "Pancake", "Cupcake", "Cucumber", "Pumpkin", "Toast", "Pudding", "Jelly Bean", "Pickle", "Cherry", "Potato", "Unicorn", "Aardvark", "Hamster", "Kitten", "Puppy", "Bumblebee", "Goose", "Ladybug", "Badger", "Jabberwocky", "Nimrod", "Pollywog", "Rainbow", "Sponge", "Plunger", "Spoon", "Sombrero", "Pantaloon" };
+
+        List<string> usernames = new List<string>();
+        foreach (Player player in PhotonNetwork.PlayerList)
+            usernames.Add(player.NickName);
+
+        string username;
+        do username = string.Format("{0} {1}", adjectives[Random.Range(0, adjectives.Length)], nouns[Random.Range(0, nouns.Length)]);
+        while (usernames.Contains(username));
+
+        return username;
     }
 }

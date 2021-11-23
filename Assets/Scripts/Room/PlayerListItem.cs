@@ -19,6 +19,8 @@ public class PlayerListItem : MonoBehaviourPunCallbacks
     {
         player = _player;
         usernameText.text = _player.NickName;
+        if (PhotonNetwork.LocalPlayer.NickName == _player.NickName)
+            usernameText.color = colors[0];
         StartCoroutine(UpdatePing());
     }
 

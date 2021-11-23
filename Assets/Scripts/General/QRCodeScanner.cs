@@ -27,6 +27,9 @@ public class QRCodeScanner : MonoBehaviour
 
     void Update()
     {
+        if (!Application.isMobilePlatform)
+            return;
+
         timer += Time.deltaTime;
         UpdateCameraRender();
 
@@ -48,6 +51,9 @@ public class QRCodeScanner : MonoBehaviour
 
     private void OnEnable()
     {
+        if (!Application.isMobilePlatform)
+            return;
+
         timer = 0;
         isScanning = false;
         if (!isCameraAvailable)
@@ -113,6 +119,7 @@ public class QRCodeScanner : MonoBehaviour
                     code = result.Text;
                     joinRoomButton.gameObject.GetComponentInChildren<TMP_Text>().text = string.Format("Join room {0}", code);
                     joinRoomButton.gameObject.SetActive(true);
+                    joinRoomButton.Select();
                 }
             }
             catch (System.Exception ex)

@@ -17,6 +17,7 @@ public class PlayerController : MonoBehaviourPunCallbacks
     [SerializeField] GameObject cameraContainer;
     [SerializeField] float mouseSensitivity, walkSpeed, sprintSpeed, jumpSpeed, smoothTime;
 
+    private string role;
     float verticalLookRotation;
     bool grounded;
     Vector3 smoothMoveVelocity;
@@ -104,8 +105,12 @@ public class PlayerController : MonoBehaviourPunCallbacks
 
         if (!Application.isMobilePlatform)
         {
-            horizontal = lookAction.ReadValue<Vector2>().x;
-            vertical = lookAction.ReadValue<Vector2>().y;
+            float multiplier = 1f;
+            if (Application.platform == RuntimePlatform.WebGLPlayer)
+                multiplier = 0.3f;
+
+            horizontal = lookAction.ReadValue<Vector2>().x * multiplier;
+            vertical = lookAction.ReadValue<Vector2>().y * multiplier;
         }
         else
         {
@@ -174,6 +179,31 @@ public class PlayerController : MonoBehaviourPunCallbacks
     private void Die()
     {
         playerManager.Die();
+    }
+
+    public void SetRole(string _role)
+    {
+        role = _role;
+        Debug.Log(role);
+        //Mesh mesh = GetComponentInChildren<MeshFilter>().mesh;
+        //Renderer renderer = GetComponentInChildren<Renderer>();
+
+        GameObject meshPrefab = Resources.Load(string.Format("Characters/PlayerGraphics{0}{1}", char.ToUpper(role[0]), role.Substring(1))) as GameObject;
+        GameObject mesh = Instantiate(meshPrefab, Vector3.zero, Quaternion.identity);
+        mesh.transform.parent = gameObject.transform;
+
+        //switch (role)
+        //{
+        //    case "robber":
+        //        GameObject meshPrefab = Resources.Load(Path.Combine("Characters", "PlayerGraphicsRobber")) as GameObject;
+        //        //GameObject obj = Instantiate(, Vector3.zero, Random.rotation);
+        //        obj.transform.parent = gameObject.transform;
+        //        //renderer.material.SetColor("_Color", Color.red);
+        //        break;
+        //    case "agent":
+        //        //renderer.material.SetColor("_Color", Color.blue);
+        //        break;
+        //}
     }
 
     public override void OnPlayerPropertiesUpdate(Player targetPlayer, Hashtable changedProps)
