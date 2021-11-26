@@ -47,7 +47,9 @@ public class Launcher : MonoBehaviourPunCallbacks
         //if (PlayerPrefs.HasKey("username"))
         //    usernameInput.text = PlayerPrefs.GetString("username");
         //MenuManager.Instance.OpenMenu("login");
-        ConnectToServer();
+
+        if (!PhotonNetwork.IsConnected)
+            ConnectToServer();
         encodedQRcode = new Texture2D(256, 256);
 
         if (!Application.isMobilePlatform)
@@ -63,6 +65,7 @@ public class Launcher : MonoBehaviourPunCallbacks
         PhotonNetwork.NickName = GenerateUniqueUsername();
         //PlayerPrefs.SetString("username", username);
         PhotonNetwork.GameVersion = "0.0.1";
+        PhotonNetwork.AutomaticallySyncScene = true;
         PhotonNetwork.ConnectUsingSettings();
         MenuManager.Instance.OpenMenu("connecting");
     }
@@ -71,7 +74,6 @@ public class Launcher : MonoBehaviourPunCallbacks
     {
         Debug.Log("Connected!");
         PhotonNetwork.JoinLobby();
-        PhotonNetwork.AutomaticallySyncScene = true;
     }
 
     public override void OnJoinedLobby()
@@ -82,7 +84,7 @@ public class Launcher : MonoBehaviourPunCallbacks
 
     public override void OnDisconnected(DisconnectCause cause)
     {
-        if(SceneManager.GetActiveScene().buildIndex != 0)
+        if (SceneManager.GetActiveScene().buildIndex != 0)
         {
             PhotonNetwork.LoadLevel(0);
         }
@@ -168,7 +170,7 @@ public class Launcher : MonoBehaviourPunCallbacks
         EncodeTextToQRcode(PhotonNetwork.CurrentRoom.Name);
 
         Player[] players = PhotonNetwork.PlayerList;
-        
+
         foreach (Transform child in playerListContent)
         {
             Destroy(child.gameObject);
@@ -263,6 +265,7 @@ public class Launcher : MonoBehaviourPunCallbacks
 
     public void StartGame()
     {
+        PhotonNetwork.IsMessageQueueRunning = false;
         PhotonNetwork.LoadLevel(1);
     }
 

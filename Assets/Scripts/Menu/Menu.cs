@@ -42,7 +42,6 @@ public class Menu : MonoBehaviour
             if (child.gameObject.activeSelf && child.GetComponent<Button>())
             {
                 child.GetComponent<Button>().Select();
-                Debug.Log("Found button");
             }
             SelectAnyButton(child);
         }

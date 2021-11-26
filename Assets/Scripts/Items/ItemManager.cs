@@ -35,6 +35,8 @@ public class ItemManager : MonoBehaviour
         {
             InitItemPickupsMoney();
         }
+
+        PhotonNetwork.IsMessageQueueRunning = true;
     }
 
     public void Update()
@@ -82,10 +84,17 @@ public class ItemManager : MonoBehaviour
 
     protected bool CheckMouseOver()
     {
-        Ray ray = Camera.main.ViewportPointToRay(new Vector3(0.5f, 0.5f)); // 0.5 = center of the screen
-        ray.origin = Camera.main.transform.position;
-        return Physics.Raycast(ray, out hit, 10f, ~EnvironmentLayer);
-        //PV.RPC("RPC_Shoot", RpcTarget.All, hit.point, hit.normal);
+        if (Camera.main != null)
+        {
+            Ray ray = Camera.main.ViewportPointToRay(new Vector3(0.5f, 0.5f)); // 0.5 = center of the screen
+            ray.origin = Camera.main.transform.position;
+            return Physics.Raycast(ray, out hit, 10f, ~EnvironmentLayer);
+            //PV.RPC("RPC_Shoot", RpcTarget.All, hit.point, hit.normal);
+        }
+        else
+        {
+            return false;
+        }
     }
 
     public void InitItemPickupsMoney()

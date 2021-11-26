@@ -6,12 +6,21 @@ public class MenuManager : MonoBehaviour
 {
     public static MenuManager Instance;
 
-    private Menu[] menus;
+    [SerializeField] Menu[] menus;
 
     private void Awake()
     {
         Instance = this;
-        menus = GetComponentsInChildren<Menu>();
+        //if (Instance == null)
+        //{
+        //    Instance = this;
+        //}
+        //else if (Instance != this)
+        //{
+        //    Destroy(Instance.gameObject);
+        //    Instance = this;
+        //}
+        //DontDestroyOnLoad(gameObject);
     }
 
     public void OpenMenu(string name)

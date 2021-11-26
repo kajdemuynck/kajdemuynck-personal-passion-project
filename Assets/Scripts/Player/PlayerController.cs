@@ -13,11 +13,12 @@ public class PlayerController : MonoBehaviourPunCallbacks
     private InputAction moveAction;
     private InputAction lookAction;
     private InputAction jumpAction;
+    private InputAction pauseAction;
 
     [SerializeField] GameObject cameraContainer;
+    [SerializeField] GameObject graphicsContainer;
     [SerializeField] float mouseSensitivity, walkSpeed, sprintSpeed, jumpSpeed, smoothTime;
 
-    private string role;
     float verticalLookRotation;
     bool grounded;
     Vector3 smoothMoveVelocity;
@@ -28,7 +29,7 @@ public class PlayerController : MonoBehaviourPunCallbacks
 
     Rigidbody rb;
     PhotonView pv;
-    PlayerManager playerManager;
+    PlayerManager pm;
 
     private void Awake()
     {
@@ -36,19 +37,12 @@ public class PlayerController : MonoBehaviourPunCallbacks
         moveAction = playerInput.actions["Move"];
         lookAction = playerInput.actions["Look"];
         jumpAction = playerInput.actions["Jump"];
+        pauseAction = playerInput.actions["Pause"];
 
         rb = GetComponent<Rigidbody>();
         pv = GetComponent<PhotonView>();
-
-        if (pv.IsMine && Application.isMobilePlatform)
-        {
-            TouchControls tc = GameObject.Find("TouchControls").GetComponent<TouchControls>();
-            tc.ActivateControls();
-            moveJoystick = tc.MoveJoystick;
-            lookJoystick = tc.LookJoystick;
-        }
-
-        playerManager = PhotonView.Find((int)pv.InstantiationData[0]).GetComponent<PlayerManager>();
+        pm = PhotonView.Find((int)pv.InstantiationData[0]).GetComponent<PlayerManager>();
+        SetCharacter((string)pv.InstantiationData[1]);
     }
 
     private void Start()
@@ -72,13 +66,24 @@ public class PlayerController : MonoBehaviourPunCallbacks
             Destroy(GetComponentInChildren<Camera>().gameObject);
             Destroy(rb);
         }
+
+        if (pv.IsMine && Application.isMobilePlatform)
+        {
+            TouchControls tc = GameObject.Find("TouchControls").GetComponent<TouchControls>();
+            tc.ActivateControls();
+            moveJoystick = tc.MoveJoystick;
+            lookJoystick = tc.LookJoystick;
+        }
+
+        //SetRole("robber");
     }
 
     private void Update()
     {
-        if (!pv.IsMine)
+        if (!pv.IsMine || pm.IsPaused)
             return;
 
+        PauseGame();
         Look();
         Move();
         Jump();
@@ -92,10 +97,18 @@ public class PlayerController : MonoBehaviourPunCallbacks
 
     private void FixedUpdate()
     {
-        if (!pv.IsMine)
+        if (!pv.IsMine || pm.IsPaused)
             return;
 
         rb.MovePosition(rb.position + transform.TransformDirection(moveAmount) * Time.fixedDeltaTime);
+    }
+
+    private void PauseGame()
+    {
+        if (pauseAction.ReadValue<float>() > 0)
+        {
+            pm.IsPaused = true;
+        }
     }
 
     private void Look()
@@ -178,32 +191,17 @@ public class PlayerController : MonoBehaviourPunCallbacks
 
     private void Die()
     {
-        playerManager.Die();
+        pm.Die();
     }
 
-    public void SetRole(string _role)
+    public void SetCharacter(string role)
     {
-        role = _role;
-        Debug.Log(role);
+        Debug.Log("Setting role...");
         //Mesh mesh = GetComponentInChildren<MeshFilter>().mesh;
         //Renderer renderer = GetComponentInChildren<Renderer>();
 
         GameObject meshPrefab = Resources.Load(string.Format("Characters/PlayerGraphics{0}{1}", char.ToUpper(role[0]), role.Substring(1))) as GameObject;
-        GameObject mesh = Instantiate(meshPrefab, Vector3.zero, Quaternion.identity);
-        mesh.transform.parent = gameObject.transform;
-
-        //switch (role)
-        //{
-        //    case "robber":
-        //        GameObject meshPrefab = Resources.Load(Path.Combine("Characters", "PlayerGraphicsRobber")) as GameObject;
-        //        //GameObject obj = Instantiate(, Vector3.zero, Random.rotation);
-        //        obj.transform.parent = gameObject.transform;
-        //        //renderer.material.SetColor("_Color", Color.red);
-        //        break;
-        //    case "agent":
-        //        //renderer.material.SetColor("_Color", Color.blue);
-        //        break;
-        //}
+        GameObject mesh = Instantiate(meshPrefab, graphicsContainer.transform, false);
     }
 
     public override void OnPlayerPropertiesUpdate(Player targetPlayer, Hashtable changedProps)

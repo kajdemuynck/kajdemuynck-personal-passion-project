@@ -7,12 +7,32 @@ using System.IO;
 using System.Linq;
 using System;
 using Random = UnityEngine.Random;
+//using Hashtable = ExitGames.Client.Photon.Hashtable;
 
-public class PlayerManager : MonoBehaviour
+public class PlayerManager : MonoBehaviourPunCallbacks
 {
     PhotonView pv;
+    HUD hud;
+    public GameObject controller;
 
-    GameObject controller;
+    private string role;
+    private bool isPaused = false;
+    public bool IsPaused
+    {
+        get
+        {
+            return isPaused;
+        }
+
+        set
+        {
+            isPaused = value;
+            if (value)
+                hud.ShowPauseMenu();
+            else
+                hud.HidePauseMenu();
+        }
+    }
 
     private string[] roles = new string[] { "robber", "agent" };
     private int[] divisions = new int[] { 0, 1, 0, 1, 0 };
@@ -20,69 +40,83 @@ public class PlayerManager : MonoBehaviour
     private void Awake()
     {
         pv = GetComponent<PhotonView>();
-
-        if (pv.IsMine)
-            CreateController();
+        hud = GameObject.Find("HUD").GetComponent<HUD>();
     }
 
     void Start()
     {
-        if (pv.IsMine && PhotonNetwork.IsMasterClient)
+        if (pv.IsMine)
         {
-            //List<Player> players = new List<Player>(PhotonNetwork.CurrentRoom.Players);
-            Dictionary<int, Player> playerList = PhotonNetwork.CurrentRoom.Players;
+            hud.SetPlayerManager(pv.ViewID);
 
-            int[] division = new ArraySegment<int>(divisions, 0, playerList.Count).ToArray();
-            List<int> rolesTaken = new List<int>();
-
-            foreach (KeyValuePair<int, Player> player in playerList)
-            {
-                //Debug.Log(string.Format("{0}: {1}", player.Key, player.Value.NickName));
-
-                int randomRole;
-                do randomRole = Random.Range(0, division.Length);
-                while (rolesTaken.Contains(randomRole));
-                rolesTaken.Add(randomRole);
-
-                if (player.Value != PhotonNetwork.LocalPlayer)
-                    AssignRole(player.Value, roles[randomRole]);
-                else
-                    RPC_AssignRole(roles[randomRole]);
-            }
-
-            //List<int> rolesTaken = new List<int>();
-            //for (int i = 0; i < players.Length; i++)
-            //{
-            //    int randomRole;
-            //    do randomRole = Random.Range(0, division.Length);
-            //    while (!rolesTaken.Contains(randomRole));
-            //    rolesTaken.Add(randomRole);
-            //    if (players[i] != PhotonNetwork.LocalPlayer)
-            //        Debug.Log(roles[randomRole]);
-            //    //AssignRole(players[i], roles[randomRole]);
-            //    else
-            //        Debug.Log(roles[randomRole]);
-            //    //RPC_AssignRole(roles[randomRole]);
-            //}
+            if (PhotonNetwork.IsMasterClient)
+                StartCoroutine(AssignRolesToPlayers());
         }
     }
 
-    private void CreateController()
+    public IEnumerator AssignRolesToPlayers()
+    {
+        Player[] playerList;
+        PlayerManager[] playerManagers;
+
+        do
+        {
+            playerList = PhotonNetwork.CurrentRoom.Players.Values.ToArray();
+            playerManagers = FindObjectsOfType<PlayerManager>();
+            Debug.Log("Players: " + playerList.Length);
+            Debug.Log("Managers: " + playerManagers.Length);
+
+            yield return null;
+        }
+        while (playerList.Length > playerManagers.Length);
+
+        Dictionary<Player, PlayerManager> playerManagersOfPlayers = new Dictionary<Player, PlayerManager>();
+
+        foreach (PlayerManager pm in playerManagers)
+        {
+            int i = Array.IndexOf(playerList, pm.gameObject.GetComponent<PhotonView>().Owner);
+            playerManagersOfPlayers.Add(playerList[i], pm);
+        }
+
+        int[] division = new ArraySegment<int>(divisions, 0, playerList.Length).ToArray();
+        List<int> rolesTaken = new List<int>();
+
+        foreach (Player player in playerList)
+        {
+            //Debug.Log(string.Format("{0}: {1}", player.Key, player.Value.NickName));
+            int randomRole;
+            do randomRole = Random.Range(0, division.Length);
+            while (rolesTaken.Contains(randomRole));
+            rolesTaken.Add(randomRole);
+
+            Debug.Log(player.NickName);
+            Debug.Log(roles[division[randomRole]]);
+
+            playerManagersOfPlayers[player].AssignRole(roles[division[randomRole]]);
+        }
+    }
+
+    public void CreateController()
     {
         //Transform spawnpoint = SpawnManager.Instance.GetSpawnpoint();
         //controller = PhotonNetwork.Instantiate(Path.Combine("PhotonPrefabs", "PlayerController"), spawnpoint.position, spawnpoint.rotation, 0, new object[] { photonView.ViewID });
-        controller = PhotonNetwork.Instantiate(Path.Combine("PhotonPrefabs", "PlayerController"), Vector3.zero, Quaternion.identity, 0, new object[] { pv.ViewID });
+        controller = PhotonNetwork.Instantiate(Path.Combine("PhotonPrefabs", "PlayerController"), Vector3.zero, Quaternion.identity, 0, new object[] { pv.ViewID, role });
     }
 
-    public void AssignRole(Player player, string role)
+    public void AssignRole(string _role)
     {
-        pv.RPC("RPC_AssignRole", player, role);
+        pv.RPC("RPC_AssignRole", RpcTarget.All, _role);
     }
 
     [PunRPC]
-    private void RPC_AssignRole(string role)
+    private void RPC_AssignRole(string _role)
     {
-        controller.GetComponent<PlayerController>().SetRole(role);
+        Debug.Log("Role received");
+        Debug.Log(_role);
+        role = _role;
+
+        if (pv.IsMine)
+            CreateController();
     }
 
     public void Die()

@@ -14,13 +14,25 @@ public class RoomManager : MonoBehaviourPunCallbacks
     private void Awake()
     {
         pv = GetComponent<PhotonView>();
-        if (Instance)
+
+        if (Instance == null)
         {
-            Destroy(gameObject);
-            return;
+            Instance = this;
+        }
+        else if (Instance != this)
+        {
+            Destroy(Instance.gameObject);
+            Instance = this;
         }
         DontDestroyOnLoad(gameObject);
-        Instance = this;
+
+        //if (Instance || FindObjectsOfType<RoomManager>().Length > 1)
+        //{
+        //    Destroy(gameObject);
+        //    return;
+        //}
+        //DontDestroyOnLoad(gameObject);
+        //Instance = this;
     }
 
     public override void OnEnable()
