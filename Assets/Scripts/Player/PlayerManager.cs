@@ -80,6 +80,7 @@ public class PlayerManager : MonoBehaviourPunCallbacks
 
         int[] division = new ArraySegment<int>(divisions, 0, playerList.Length).ToArray();
         List<int> rolesTaken = new List<int>();
+        List<int> spawnpointsTaken = new List<int>();
 
         foreach (Player player in playerList)
         {
@@ -88,35 +89,41 @@ public class PlayerManager : MonoBehaviourPunCallbacks
             do randomRole = Random.Range(0, division.Length);
             while (rolesTaken.Contains(randomRole));
             rolesTaken.Add(randomRole);
+            string _role = roles[division[randomRole]];
+
+            int randomSpawnpointId;
+            do randomSpawnpointId = SpawnManager.Instance.GetSpawnpointIdByRole(_role);
+            while (spawnpointsTaken.Contains(randomSpawnpointId));
+            spawnpointsTaken.Add(randomSpawnpointId);
 
             Debug.Log(player.NickName);
             Debug.Log(roles[division[randomRole]]);
 
-            playerManagersOfPlayers[player].AssignRole(roles[division[randomRole]]);
+            playerManagersOfPlayers[player].AssignRole(_role, randomSpawnpointId);
         }
     }
 
-    public void CreateController()
+    public void CreateController(Transform spawnpoint)
     {
         //Transform spawnpoint = SpawnManager.Instance.GetSpawnpoint();
         //controller = PhotonNetwork.Instantiate(Path.Combine("PhotonPrefabs", "PlayerController"), spawnpoint.position, spawnpoint.rotation, 0, new object[] { photonView.ViewID });
-        controller = PhotonNetwork.Instantiate(Path.Combine("PhotonPrefabs", "PlayerController"), Vector3.zero, Quaternion.identity, 0, new object[] { pv.ViewID, role });
+        controller = PhotonNetwork.Instantiate(Path.Combine("PhotonPrefabs", "PlayerController"), spawnpoint.position, spawnpoint.rotation, 0, new object[] { pv.ViewID, role });
     }
 
-    public void AssignRole(string _role)
+    public void AssignRole(string _role, int _spawnpointId)
     {
-        pv.RPC("RPC_AssignRole", RpcTarget.All, _role);
+        pv.RPC("RPC_AssignRole", RpcTarget.All, _role, _spawnpointId);
     }
 
     [PunRPC]
-    private void RPC_AssignRole(string _role)
+    private void RPC_AssignRole(string _role, int _spawnpointId)
     {
         Debug.Log("Role received");
         Debug.Log(_role);
         role = _role;
 
         if (pv.IsMine)
-            CreateController();
+            CreateController(SpawnManager.Instance.SelectSpawnpointById(_spawnpointId));
     }
 
     public void Die()
@@ -124,6 +131,6 @@ public class PlayerManager : MonoBehaviourPunCallbacks
         // Die
         PhotonNetwork.Destroy(controller);
         // Respawn
-        CreateController();
+        CreateController(SpawnManager.Instance.SelectSpawnpointById(SpawnManager.Instance.GetSpawnpointIdByRole(role)));
     }
 }

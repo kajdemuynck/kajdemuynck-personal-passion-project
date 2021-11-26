@@ -12,6 +12,7 @@ public class HUD : MonoBehaviourPunCallbacks
     [SerializeField] Canvas touchControls;
     [SerializeField] TMP_Text itemDescriptionText;
     [SerializeField] GameObject pauseMenu;
+    [SerializeField] Button resumeButton;
 
     private void Awake()
     {
@@ -41,6 +42,9 @@ public class HUD : MonoBehaviourPunCallbacks
         Cursor.visible = true;
         if (!Application.isMobilePlatform)
             Cursor.lockState = CursorLockMode.None;
+        else
+            touchControls.gameObject.SetActive(false);
+        resumeButton.Select();
         pauseMenu.SetActive(true);
     }
 
@@ -49,6 +53,8 @@ public class HUD : MonoBehaviourPunCallbacks
         Cursor.visible = false;
         if (!Application.isMobilePlatform)
             Cursor.lockState = CursorLockMode.Locked;
+        else
+            touchControls.gameObject.SetActive(true);
         pauseMenu.SetActive(false);
     }
 

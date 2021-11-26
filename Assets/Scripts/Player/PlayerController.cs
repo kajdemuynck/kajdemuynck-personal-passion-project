@@ -26,6 +26,7 @@ public class PlayerController : MonoBehaviourPunCallbacks
 
     private Joystick moveJoystick;
     private Joystick lookJoystick;
+    private Button pauseButton;
 
     Rigidbody rb;
     PhotonView pv;
@@ -70,9 +71,11 @@ public class PlayerController : MonoBehaviourPunCallbacks
         if (pv.IsMine && Application.isMobilePlatform)
         {
             TouchControls tc = GameObject.Find("TouchControls").GetComponent<TouchControls>();
-            tc.ActivateControls();
+            //tc.ActivateControls();
             moveJoystick = tc.MoveJoystick;
             lookJoystick = tc.LookJoystick;
+            pauseButton = tc.pauseButton;
+            pauseButton.onClick.AddListener(PauseGame);
         }
 
         //SetRole("robber");
@@ -83,7 +86,9 @@ public class PlayerController : MonoBehaviourPunCallbacks
         if (!pv.IsMine || pm.IsPaused)
             return;
 
-        PauseGame();
+        if (pauseAction.ReadValue<float>() > 0)
+            PauseGame();
+
         Look();
         Move();
         Jump();
@@ -105,10 +110,7 @@ public class PlayerController : MonoBehaviourPunCallbacks
 
     private void PauseGame()
     {
-        if (pauseAction.ReadValue<float>() > 0)
-        {
-            pm.IsPaused = true;
-        }
+        pm.IsPaused = true;
     }
 
     private void Look()
