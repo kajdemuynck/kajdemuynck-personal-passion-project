@@ -15,7 +15,7 @@ public class PlayerManager : MonoBehaviourPunCallbacks
     HUD hud;
     public GameObject controller;
 
-    private string role;
+    public string role;
     private bool isPaused = false;
     public bool IsPaused
     {
@@ -132,5 +132,12 @@ public class PlayerManager : MonoBehaviourPunCallbacks
         PhotonNetwork.Destroy(controller);
         // Respawn
         CreateController(SpawnManager.Instance.SelectSpawnpointById(SpawnManager.Instance.GetSpawnpointIdByRole(role)));
+    }
+
+    public override void OnPlayerPropertiesUpdate(Player targetPlayer, ExitGames.Client.Photon.Hashtable changedProps)
+    {
+        if (pv.IsMine && targetPlayer == PhotonNetwork.LocalPlayer && changedProps.ContainsKey("money"))
+            hud.SetMoney((int) PhotonNetwork.LocalPlayer.CustomProperties["money"]);
+        base.OnPlayerPropertiesUpdate(targetPlayer, changedProps);
     }
 }

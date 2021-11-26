@@ -13,6 +13,7 @@ public class HUD : MonoBehaviourPunCallbacks
     [SerializeField] TMP_Text itemDescriptionText;
     [SerializeField] GameObject pauseMenu;
     [SerializeField] Button resumeButton;
+    [SerializeField] TMP_Text moneyText;
 
     private void Awake()
     {
@@ -35,6 +36,11 @@ public class HUD : MonoBehaviourPunCallbacks
     {
         itemDescriptionText.gameObject.SetActive(false);
         itemDescriptionText.text = "";
+    }
+
+    public void SetMoney(int money)
+    {
+        moneyText.text = string.Format("${0}", money);
     }
 
     public void ShowPauseMenu()
