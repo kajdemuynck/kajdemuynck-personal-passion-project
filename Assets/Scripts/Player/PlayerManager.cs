@@ -16,6 +16,7 @@ public class PlayerManager : MonoBehaviourPunCallbacks
     public GameObject controller;
 
     public string role;
+    public bool isArrested = false;
     private bool isPaused = false;
     public bool IsPaused
     {
@@ -124,6 +125,21 @@ public class PlayerManager : MonoBehaviourPunCallbacks
 
         if (pv.IsMine)
             CreateController(SpawnManager.Instance.SelectSpawnpointById(_spawnpointId));
+    }
+
+    public void SetArrested(bool _isArrested)
+    {
+        pv.RPC("RPC_SetArrested", RpcTarget.All, _isArrested);
+    }
+
+    [PunRPC]
+    private void RPC_SetArrested(bool _isArrested)
+    {
+        isArrested = _isArrested;
+        if (_isArrested)
+            Debug.Log("Arrested");
+        else
+            Debug.Log("Freed");
     }
 
     public void Die()

@@ -14,15 +14,19 @@ public class PlayerController : MonoBehaviourPunCallbacks
     private InputAction lookAction;
     private InputAction jumpAction;
     private InputAction pauseAction;
+    private InputAction interactAction;
 
     [SerializeField] GameObject cameraContainer;
     [SerializeField] GameObject graphicsContainer;
-    [SerializeField] float mouseSensitivity, walkSpeed, sprintSpeed, jumpSpeed, smoothTime;
+    [SerializeField] float mouseSensitivity, walkSpeed, sprintSpeed, jumpSpeed, smoothTime, interactionDistance;
 
     float verticalLookRotation;
     bool grounded;
     Vector3 smoothMoveVelocity;
     Vector3 moveAmount;
+
+    private Ray ray;
+    private RaycastHit hit;
 
     private Joystick moveJoystick;
     private Joystick lookJoystick;
@@ -30,7 +34,8 @@ public class PlayerController : MonoBehaviourPunCallbacks
 
     Rigidbody rb;
     PhotonView pv;
-    PlayerManager pm;
+    HUD hud;
+    public PlayerManager pm;
 
     private void Awake()
     {
@@ -38,10 +43,12 @@ public class PlayerController : MonoBehaviourPunCallbacks
         moveAction = playerInput.actions["Move"];
         lookAction = playerInput.actions["Look"];
         jumpAction = playerInput.actions["Jump"];
+        interactAction = playerInput.actions["Interact"];
         pauseAction = playerInput.actions["Pause"];
 
         rb = GetComponent<Rigidbody>();
         pv = GetComponent<PhotonView>();
+        hud = GameObject.Find("HUD").GetComponent<HUD>();
         pm = PhotonView.Find((int)pv.InstantiationData[0]).GetComponent<PlayerManager>();
         SetCharacter((string)pv.InstantiationData[1]);
     }
@@ -89,15 +96,18 @@ public class PlayerController : MonoBehaviourPunCallbacks
         if (pauseAction.ReadValue<float>() > 0)
             PauseGame();
 
-        Look();
-        Move();
-        Jump();
-
         // Respawn (die) when falling of the map
         if (transform.position.y < -10f)
-        {
             Die();
-        }
+
+        Look();
+        Interact();
+
+        if (pm.isArrested && pm.role == "robber")
+            return;
+
+        Move();
+        Jump();
     }
 
     private void FixedUpdate()
@@ -183,6 +193,49 @@ public class PlayerController : MonoBehaviourPunCallbacks
         {
             rb.AddForce(transform.up * jumpSpeed * 25);
             grounded = false;
+        }
+    }
+
+    private void Interact()
+    {
+        if (CheckMouseOver() && hit.collider.gameObject.GetComponent<PlayerController>())
+        {
+            PlayerController pc = hit.collider.gameObject.GetComponent<PlayerController>();
+
+            if (pm.role == "agent" && pc.pm.role == "robber" && !pc.pm.isArrested)
+            {
+                if (interactAction.ReadValue<float>() > 0)
+                {
+                    pc.pm.SetArrested(true);
+                    hud.HideDescription();
+                }
+                else
+                    hud.ShowDescription("Taze");
+            }
+            else if (pm.role == "robber" && pc.pm.role == "robber" && pc.pm.isArrested)
+            {
+                if (interactAction.ReadValue<float>() > 0)
+                {
+                    pc.pm.SetArrested(false);
+                    hud.HideDescription();
+                }
+                else
+                    hud.ShowDescription("Free");
+            }
+        }
+    }
+
+    protected bool CheckMouseOver()
+    {
+        if (Camera.main != null)
+        {
+            Ray ray = Camera.main.ViewportPointToRay(new Vector3(0.5f, 0.5f));
+            ray.origin = Camera.main.transform.position;
+            return Physics.Raycast(ray, out hit, interactionDistance);
+        }
+        else
+        {
+            return false;
         }
     }
 

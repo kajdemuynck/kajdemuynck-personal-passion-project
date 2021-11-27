@@ -6,6 +6,8 @@ using UnityEngine.InputSystem;
 
 public class ItemManager : MonoBehaviour
 {
+    public static ItemManager Instance;
+
     public bool isLookingAtItem = false;
     PhotonView pv;
     private HUD hud;
@@ -20,6 +22,17 @@ public class ItemManager : MonoBehaviour
 
     private void Awake()
     {
+        if (Instance == null)
+        {
+            Instance = this;
+        }
+        else if (Instance != this)
+        {
+            Destroy(Instance.gameObject);
+            Instance = this;
+        }
+        DontDestroyOnLoad(gameObject);
+
         playerInput = GetComponent<PlayerInput>();
         pv = GetComponent<PhotonView>();
         hud = GameObject.Find("HUD").GetComponent<HUD>();

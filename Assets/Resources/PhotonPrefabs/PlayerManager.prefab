@@ -68,3 +68,4 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   controller: {fileID: 0}
   role: 
+  isArrested: 0
