@@ -20,8 +20,9 @@ public class PlayerController : MonoBehaviourPunCallbacks
     [SerializeField] GameObject graphicsContainer;
     [SerializeField] float mouseSensitivity, walkSpeed, sprintSpeed, jumpSpeed, smoothTime, interactionDistance;
 
-    float verticalLookRotation;
-    bool grounded;
+    private float verticalLookRotation;
+    private bool grounded;
+    public bool hasFinishedSpree = false;
     Vector3 smoothMoveVelocity;
     Vector3 moveAmount;
 
@@ -33,8 +34,8 @@ public class PlayerController : MonoBehaviourPunCallbacks
     private Button pauseButton;
 
     Rigidbody rb;
-    PhotonView pv;
     HUD hud;
+    public PhotonView pv;
     public PlayerManager pm;
 
     private void Awake()
@@ -90,7 +91,7 @@ public class PlayerController : MonoBehaviourPunCallbacks
 
     private void Update()
     {
-        if (!pv.IsMine || pm.IsPaused)
+        if (!pv.IsMine || pm.IsPaused || hasFinishedSpree)
             return;
 
         if (pauseAction.ReadValue<float>() > 0)
@@ -256,7 +257,22 @@ public class PlayerController : MonoBehaviourPunCallbacks
         //Renderer renderer = GetComponentInChildren<Renderer>();
 
         GameObject meshPrefab = Resources.Load(string.Format("Characters/PlayerGraphics{0}{1}", char.ToUpper(role[0]), role.Substring(1))) as GameObject;
-        GameObject mesh = Instantiate(meshPrefab, graphicsContainer.transform, false);
+        Instantiate(meshPrefab, graphicsContainer.transform, false);
+    }
+
+    public void FinishSpree()
+    {
+        hasFinishedSpree = true;
+
+        int moneyCollected = (int) PhotonNetwork.LocalPlayer.CustomProperties["money"];
+        int previousTotal = (int)PhotonNetwork.CurrentRoom.CustomProperties["totalmoney"];
+        int totalMoney = previousTotal + moneyCollected;
+
+        Hashtable hash = new Hashtable();
+        hash.Add("totalmoney", totalMoney);
+        PhotonNetwork.CurrentRoom.SetCustomProperties(hash);
+
+        Debug.Log(string.Format("Total money collected: {0}", totalMoney));
     }
 
     public override void OnPlayerPropertiesUpdate(Player targetPlayer, Hashtable changedProps)

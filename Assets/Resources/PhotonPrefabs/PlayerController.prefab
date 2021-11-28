@@ -59,6 +59,8 @@ MonoBehaviour:
   jumpSpeed: 5
   smoothTime: 0.15
   interactionDistance: 3
+  hasFinishedSpree: 0
+  pv: {fileID: 0}
   pm: {fileID: 0}
 --- !u!114 &2445586192367238685
 MonoBehaviour:

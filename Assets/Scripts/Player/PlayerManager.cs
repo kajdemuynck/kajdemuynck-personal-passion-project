@@ -7,7 +7,7 @@ using System.IO;
 using System.Linq;
 using System;
 using Random = UnityEngine.Random;
-//using Hashtable = ExitGames.Client.Photon.Hashtable;
+using Hashtable = ExitGames.Client.Photon.Hashtable;
 
 public class PlayerManager : MonoBehaviourPunCallbacks
 {
@@ -49,9 +49,16 @@ public class PlayerManager : MonoBehaviourPunCallbacks
         if (pv.IsMine)
         {
             hud.SetPlayerManager(pv.ViewID);
+            ItemManager.Instance.SetPlayerManager(pv.ViewID);
 
             if (PhotonNetwork.IsMasterClient)
+            {
                 StartCoroutine(AssignRolesToPlayers());
+
+                Hashtable hash = new Hashtable();
+                hash.Add("totalmoney", 0);
+                PhotonNetwork.CurrentRoom.SetCustomProperties(hash);
+            }
         }
     }
 
@@ -108,6 +115,9 @@ public class PlayerManager : MonoBehaviourPunCallbacks
     {
         //Transform spawnpoint = SpawnManager.Instance.GetSpawnpoint();
         //controller = PhotonNetwork.Instantiate(Path.Combine("PhotonPrefabs", "PlayerController"), spawnpoint.position, spawnpoint.rotation, 0, new object[] { photonView.ViewID });
+        Hashtable hash = new Hashtable();
+        hash.Add("money", 0);
+        PhotonNetwork.LocalPlayer.SetCustomProperties(hash);
         controller = PhotonNetwork.Instantiate(Path.Combine("PhotonPrefabs", "PlayerController"), spawnpoint.position, spawnpoint.rotation, 0, new object[] { pv.ViewID, role });
     }
 
@@ -124,7 +134,15 @@ public class PlayerManager : MonoBehaviourPunCallbacks
         role = _role;
 
         if (pv.IsMine)
+        {
             CreateController(SpawnManager.Instance.SelectSpawnpointById(_spawnpointId));
+
+            if (_role == "robber")
+            {
+                hud.ShowRobberOverlay();
+            }
+        }
+            
     }
 
     public void SetArrested(bool _isArrested)

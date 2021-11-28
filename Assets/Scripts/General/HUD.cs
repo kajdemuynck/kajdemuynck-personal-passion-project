@@ -13,6 +13,7 @@ public class HUD : MonoBehaviourPunCallbacks
     [SerializeField] TMP_Text itemDescriptionText;
     [SerializeField] GameObject pauseMenu;
     [SerializeField] Button resumeButton;
+    [SerializeField] GameObject robberOverlay;
     [SerializeField] TMP_Text moneyText;
 
     private void Awake()
@@ -24,6 +25,11 @@ public class HUD : MonoBehaviourPunCallbacks
     public void SetPlayerManager(int pvid)
     {
         pm = PhotonView.Find(pvid).GetComponent<PlayerManager>();
+    }
+
+    public void ShowRobberOverlay()
+    {
+        robberOverlay.SetActive(true);
     }
 
     public void ShowDescription(string description)

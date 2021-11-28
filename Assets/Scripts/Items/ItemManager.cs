@@ -10,6 +10,7 @@ public class ItemManager : MonoBehaviour
 
     public bool isLookingAtItem = false;
     PhotonView pv;
+    PlayerManager pm;
     private HUD hud;
     public LayerMask EnvironmentLayer;
     private Ray ray;
@@ -60,12 +61,15 @@ public class ItemManager : MonoBehaviour
         {
             foreach (ItemPickup item in itemsPickup)
             {
-                if (hit.collider.gameObject == item.gameObject && !item.isPickedUp && hit.distance <= item.interactionDistance)
+                if (!(hit.collider.gameObject.GetComponent<ItemPickupMoney>() && pm.role == "agent"))
                 {
-                    isLookingAtItem = true;
-                    hud.ShowDescription(item.description);
-                    item.CheckInteraction(playerInput);
-                    break;
+                    if (hit.collider.gameObject == item.gameObject && !item.isPickedUp && hit.distance <= item.interactionDistance)
+                    {
+                        isLookingAtItem = true;
+                        hud.ShowDescription(item.description);
+                        item.CheckInteraction(playerInput);
+                        break;
+                    }
                 }
             }
 
@@ -93,6 +97,11 @@ public class ItemManager : MonoBehaviour
                 itemsPickupMoney.Add(item.GetComponent<ItemPickupMoney>());
             }
         }
+    }
+
+    public void SetPlayerManager(int pvid)
+    {
+        pm = PhotonView.Find(pvid).GetComponent<PlayerManager>();
     }
 
     protected bool CheckMouseOver()
