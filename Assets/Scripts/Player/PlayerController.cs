@@ -5,41 +5,47 @@ using Photon.Realtime;
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.InputSystem;
+using UnityEngine.InputSystem.EnhancedTouch;
+using Touch = UnityEngine.InputSystem.EnhancedTouch.Touch;
 using Hashtable = ExitGames.Client.Photon.Hashtable;
 
-public class PlayerController : MonoBehaviourPunCallbacks
+public class PlayerController : MonoBehaviourPunCallbacks, IInteractable
 {
     private PlayerInput playerInput;
     private InputAction moveAction;
     private InputAction lookAction;
     private InputAction jumpAction;
     private InputAction pauseAction;
-    private InputAction interactAction;
+    public InputAction interactAction;
 
     [SerializeField] GameObject cameraContainer;
     [SerializeField] GameObject graphicsContainer;
-    [SerializeField] float mouseSensitivity, walkSpeed, sprintSpeed, jumpSpeed, smoothTime, interactionDistance;
+    [SerializeField] float mouseSensitivity, walkSpeed, sprintSpeed, jumpSpeed, smoothTime;
 
     private float verticalLookRotation;
     private bool grounded;
+    private float interactionDistancePlayer = 3f;
+    private bool isHolding = false;
+    private bool isReleased = true;
     public bool hasFinishedSpree = false;
     Vector3 smoothMoveVelocity;
     Vector3 moveAmount;
 
-    private Ray ray;
-    private RaycastHit hit;
+    RaycastHit raycasthit;
+    public LayerMask EnvironmentLayer;
+    //private LayerMask EnvironmentLayer = 1 << 6;
 
     private Joystick moveJoystick;
     private Joystick lookJoystick;
     private Button pauseButton;
 
     Rigidbody rb;
-    HUD hud;
     public PhotonView pv;
     public PlayerManager pm;
 
     private void Awake()
     {
+        EnhancedTouchSupport.Enable();
         playerInput = GetComponent<PlayerInput>();
         moveAction = playerInput.actions["Move"];
         lookAction = playerInput.actions["Look"];
@@ -49,7 +55,6 @@ public class PlayerController : MonoBehaviourPunCallbacks
 
         rb = GetComponent<Rigidbody>();
         pv = GetComponent<PhotonView>();
-        hud = GameObject.Find("HUD").GetComponent<HUD>();
         pm = PhotonView.Find((int)pv.InstantiationData[0]).GetComponent<PlayerManager>();
         SetCharacter((string)pv.InstantiationData[1]);
     }
@@ -69,6 +74,7 @@ public class PlayerController : MonoBehaviourPunCallbacks
             Hashtable hash = new Hashtable();
             hash.Add("money", 0);
             PhotonNetwork.LocalPlayer.SetCustomProperties(hash);
+            HUD.Instance.SetPlayerController(pv.ViewID);
         }
         else
         {
@@ -91,7 +97,7 @@ public class PlayerController : MonoBehaviourPunCallbacks
 
     private void Update()
     {
-        if (!pv.IsMine || pm.IsPaused || hasFinishedSpree)
+        if (!pv.IsMine || pm.IsPaused)
             return;
 
         if (pauseAction.ReadValue<float>() > 0)
@@ -102,7 +108,11 @@ public class PlayerController : MonoBehaviourPunCallbacks
             Die();
 
         Look();
-        Interact();
+
+        if (hasFinishedSpree)
+            return;
+
+        CheckInteraction();
 
         if (pm.isArrested && pm.role == "robber")
             return;
@@ -183,7 +193,7 @@ public class PlayerController : MonoBehaviourPunCallbacks
                 vertical = -1f;
         }
 
-        Vector3 moveDir = new Vector3(horizontal, 0, vertical).normalized;
+        Vector3 moveDir = new Vector3(horizontal, 0, vertical);
 
         moveAmount = Vector3.SmoothDamp(moveAmount, moveDir * /*Input.GetKey(KeyCode.LeftShift) ? sprintSpeed :*/ walkSpeed, ref smoothMoveVelocity, smoothTime);
     }
@@ -197,47 +207,135 @@ public class PlayerController : MonoBehaviourPunCallbacks
         }
     }
 
-    private void Interact()
+    private void CheckInteraction()
     {
-        if (CheckMouseOver() && hit.collider.gameObject.GetComponent<PlayerController>())
+        bool isLooking = CheckIsLookingAtObject();
+
+        if (isLooking)
+        {
+            bool isInteracting = CheckIsInteractingWithObject(raycasthit);
+
+            GameObject checkingObj = raycasthit.collider.gameObject;
+            GameObject interactableObj = checkingObj.GetComponent<IInteractable>() != null ? checkingObj : null;
+
+            while (interactableObj == null && checkingObj.transform.parent != null)
+            {
+                Debug.Log(checkingObj.name);
+                checkingObj = checkingObj.transform.parent.gameObject;
+                if (checkingObj.GetComponent<IInteractable>() != null)
+                    interactableObj = checkingObj;
+            }
+
+            //do
+            //{
+            //    Debug.Log(checkingObj.name);
+            //    if (checkingObj.GetComponent<IInteractable>() != null)
+            //        interactableObj = checkingObj;
+            //    else
+            //        checkingObj = checkingObj.transform.parent.gameObject;
+            //}
+            //while (interactableObj == null && checkingObj.transform.parent != null);
+
+
+
+            if (interactableObj != null)
+            {
+                Debug.Log(interactableObj.name);
+                interactableObj.GetComponent<IInteractable>().Interact(raycasthit, isInteracting);
+            }
+            else
+                HUD.Instance.HideDescription();
+
+            //(ItemManager.Instance.CheckInteraction(hit))
+        }
+        else
+        {
+            HUD.Instance.HideDescription();
+        }
+    }
+
+    private bool CheckIsInteractingWithObject(RaycastHit hit)
+    {
+        RaycastHit hitTouch;
+
+        isHolding = false;
+
+        if (HUD.Instance.pc.interactAction.ReadValue<float>() > 0 && !Application.isMobilePlatform)
+        {
+            isHolding = true;
+        }
+        else if (Application.isMobilePlatform && Touch.activeFingers.Count > 0)
+        {
+            foreach (Finger finger in Touch.activeFingers)
+            {
+                Ray ray = Camera.main.ScreenPointToRay(finger.screenPosition); // position in px
+                ray.origin = Camera.main.transform.position;
+                if (Physics.Raycast(ray, out hitTouch, 10f, ~EnvironmentLayer))
+                {
+                    if (hitTouch.collider.gameObject == hit.collider.gameObject)
+                    {
+                        isHolding = true;
+                    }
+                    break;
+                }
+            }
+        }
+
+        if (!isHolding)
+        {
+            if (!isReleased)
+            {
+                isReleased = true;
+                return true;
+            }
+        }
+        else
+        {
+            isReleased = false;
+        }
+
+        return false;
+    }
+
+    public void Interact(RaycastHit hit, bool isInteracting)
+    {
+        if (hit.distance <= interactionDistancePlayer)
         {
             PlayerController pc = hit.collider.gameObject.GetComponent<PlayerController>();
 
             if (pm.role == "agent" && pc.pm.role == "robber" && !pc.pm.isArrested)
             {
-                if (interactAction.ReadValue<float>() > 0)
+                if (isInteracting)
                 {
                     pc.pm.SetArrested(true);
-                    hud.HideDescription();
+                    HUD.Instance.HideDescription();
                 }
                 else
-                    hud.ShowDescription("Taze");
+                    HUD.Instance.ShowDescription("Arrest");
             }
             else if (pm.role == "robber" && pc.pm.role == "robber" && pc.pm.isArrested)
             {
-                if (interactAction.ReadValue<float>() > 0)
+                if (isInteracting)
                 {
                     pc.pm.SetArrested(false);
-                    hud.HideDescription();
+                    HUD.Instance.HideDescription();
                 }
                 else
-                    hud.ShowDescription("Free");
+                    HUD.Instance.ShowDescription("Free");
             }
         }
     }
 
-    protected bool CheckMouseOver()
+    protected bool CheckIsLookingAtObject()
     {
         if (Camera.main != null)
         {
             Ray ray = Camera.main.ViewportPointToRay(new Vector3(0.5f, 0.5f));
             ray.origin = Camera.main.transform.position;
-            return Physics.Raycast(ray, out hit, interactionDistance);
+            return Physics.Raycast(ray, out raycasthit, 10f, ~EnvironmentLayer);
         }
         else
-        {
             return false;
-        }
     }
 
     public void SetGrounded(bool _grounded)

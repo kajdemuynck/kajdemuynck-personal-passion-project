@@ -14,6 +14,7 @@ GameObject:
   - component: {fileID: 8595134038832871495}
   - component: {fileID: 1748378545082663560}
   - component: {fileID: 8595134038832871497}
+  - component: {fileID: 1583396101514163685}
   - component: {fileID: 8595134038832871498}
   m_Layer: 0
   m_Name: PlayerController
@@ -30,7 +31,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 8595134038832871500}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 1, z: 0}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children:
   - {fileID: 8595134039166920300}
@@ -51,15 +52,25 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f78a9cc4ca2514dfbb101ab4c97a5199, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  interactAction:
+    m_Name: Interact
+    m_Type: 0
+    m_ExpectedControlType: 
+    m_Id: 36b74c74-4241-48ec-b647-e99e1031dd01
+    m_Processors: 
+    m_Interactions: 
+    m_SingletonActionBindings: []
   cameraContainer: {fileID: 8595134039166920301}
   graphicsContainer: {fileID: 8595134039171412789}
   mouseSensitivity: 1
   walkSpeed: 3
   sprintSpeed: 6
-  jumpSpeed: 5
+  jumpSpeed: 8
   smoothTime: 0.15
-  interactionDistance: 3
   hasFinishedSpree: 0
+  EnvironmentLayer:
+    serializedVersion: 2
+    m_Bits: 64
   pv: {fileID: 0}
   pm: {fileID: 0}
 --- !u!114 &2445586192367238685
@@ -160,11 +171,24 @@ CapsuleCollider:
   m_GameObject: {fileID: 8595134038832871500}
   m_Material: {fileID: 0}
   m_IsTrigger: 0
-  m_Enabled: 1
-  m_Radius: 0.5
-  m_Height: 2
+  m_Enabled: 0
+  m_Radius: 0.4
+  m_Height: 1.8
   m_Direction: 1
-  m_Center: {x: 0, y: 0, z: 0}
+  m_Center: {x: 0, y: 0.9, z: 0}
+--- !u!65 &1583396101514163685
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8595134038832871500}
+  m_Material: {fileID: 0}
+  m_IsTrigger: 0
+  m_Enabled: 1
+  serializedVersion: 2
+  m_Size: {x: 0.8, y: 1.8, z: 0.5}
+  m_Center: {x: 0, y: 0.9, z: 0}
 --- !u!54 &8595134038832871498
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -236,7 +260,7 @@ Camera:
     y: 0
     width: 1
     height: 1
-  near clip plane: 0.3
+  near clip plane: 0.15
   far clip plane: 1000
   field of view: 60
   orthographic: 0
@@ -288,7 +312,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 8595134039166920301}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0.5, z: 0}
+  m_LocalPosition: {x: 0, y: 1.65, z: 0.1}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children:
   - {fileID: 8595134038961806089}
@@ -351,7 +375,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 8595134040728511621}
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: -1.05, z: 0}
+  m_LocalPosition: {x: 0, y: -0.05, z: 0}
   m_LocalScale: {x: 0.5, y: 0.1, z: 0.5}
   m_Children: []
   m_Father: {fileID: 8595134038832871499}

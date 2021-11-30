@@ -26,14 +26,6 @@ public class RoomManager : MonoBehaviourPunCallbacks
             Instance = this;
         }
         DontDestroyOnLoad(gameObject);
-
-        //if (Instance || FindObjectsOfType<RoomManager>().Length > 1)
-        //{
-        //    Destroy(gameObject);
-        //    return;
-        //}
-        //DontDestroyOnLoad(gameObject);
-        //Instance = this;
     }
 
     public override void OnEnable()

@@ -8,15 +8,8 @@ public class ItemManager : MonoBehaviour
 {
     public static ItemManager Instance;
 
-    public bool isLookingAtItem = false;
     PhotonView pv;
     PlayerManager pm;
-    private HUD hud;
-    public LayerMask EnvironmentLayer;
-    private Ray ray;
-    private RaycastHit hit;
-
-    private PlayerInput playerInput;
 
     private List<ItemPickup> itemsPickup;
     private List<ItemPickupMoney> itemsPickupMoney;
@@ -32,11 +25,9 @@ public class ItemManager : MonoBehaviour
             Destroy(Instance.gameObject);
             Instance = this;
         }
-        DontDestroyOnLoad(gameObject);
+        //DontDestroyOnLoad(gameObject);
 
-        playerInput = GetComponent<PlayerInput>();
         pv = GetComponent<PhotonView>();
-        hud = GameObject.Find("HUD").GetComponent<HUD>();
     }
 
     public void Start()
@@ -53,36 +44,31 @@ public class ItemManager : MonoBehaviour
         PhotonNetwork.IsMessageQueueRunning = true;
     }
 
-    public void Update()
+    public void SetPlayerManager(int pvid)
     {
-        isLookingAtItem = false;
-
-        if (CheckMouseOver())
-        {
-            foreach (ItemPickup item in itemsPickup)
-            {
-                if (!(hit.collider.gameObject.GetComponent<ItemPickupMoney>() && pm.role == "agent"))
-                {
-                    if (hit.collider.gameObject == item.gameObject && !item.isPickedUp && hit.distance <= item.interactionDistance)
-                    {
-                        isLookingAtItem = true;
-                        hud.ShowDescription(item.description);
-                        item.CheckInteraction(playerInput);
-                        break;
-                    }
-                }
-            }
-
-            if (!isLookingAtItem)
-                hud.HideDescription();
-        }
-        else
-        {
-            hud.HideDescription();
-        }
-
-        //Debug.Log(isLookingAtItem);
+        pm = PhotonView.Find(pvid).GetComponent<PlayerManager>();
     }
+
+    //public bool CheckInteraction(RaycastHit hit)
+    //{
+    //    bool isLookingAtItem = false;
+
+    //    foreach (ItemPickup item in itemsPickup)
+    //    {
+    //        if (!(hit.collider.gameObject.GetComponent<ItemPickupMoney>() && pm.role == "agent"))
+    //        {
+    //            if (hit.collider.gameObject == item.gameObject && !item.isPickedUp && hit.distance <= item.interactionDistance)
+    //            {
+    //                isLookingAtItem = true;
+    //                HUD.Instance.ShowDescription(item.description);
+    //                item.CheckInteraction();
+    //                break;
+    //            }
+    //        }
+    //    }
+
+    //    return isLookingAtItem;
+    //}
 
     private void SortList()
     {
@@ -96,26 +82,6 @@ public class ItemManager : MonoBehaviour
             {
                 itemsPickupMoney.Add(item.GetComponent<ItemPickupMoney>());
             }
-        }
-    }
-
-    public void SetPlayerManager(int pvid)
-    {
-        pm = PhotonView.Find(pvid).GetComponent<PlayerManager>();
-    }
-
-    protected bool CheckMouseOver()
-    {
-        if (Camera.main != null)
-        {
-            Ray ray = Camera.main.ViewportPointToRay(new Vector3(0.5f, 0.5f)); // 0.5 = center of the screen
-            ray.origin = Camera.main.transform.position;
-            return Physics.Raycast(ray, out hit, 10f, ~EnvironmentLayer);
-            //PV.RPC("RPC_Shoot", RpcTarget.All, hit.point, hit.normal);
-        }
-        else
-        {
-            return false;
         }
     }
 

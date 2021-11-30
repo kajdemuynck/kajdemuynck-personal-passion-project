@@ -12,7 +12,6 @@ using Hashtable = ExitGames.Client.Photon.Hashtable;
 public class PlayerManager : MonoBehaviourPunCallbacks
 {
     PhotonView pv;
-    HUD hud;
     public GameObject controller;
 
     public string role;
@@ -29,9 +28,9 @@ public class PlayerManager : MonoBehaviourPunCallbacks
         {
             isPaused = value;
             if (value)
-                hud.ShowPauseMenu();
+                HUD.Instance.ShowPauseMenu();
             else
-                hud.HidePauseMenu();
+                HUD.Instance.HidePauseMenu();
         }
     }
 
@@ -41,14 +40,13 @@ public class PlayerManager : MonoBehaviourPunCallbacks
     private void Awake()
     {
         pv = GetComponent<PhotonView>();
-        hud = GameObject.Find("HUD").GetComponent<HUD>();
     }
 
     void Start()
     {
         if (pv.IsMine)
         {
-            hud.SetPlayerManager(pv.ViewID);
+            HUD.Instance.SetPlayerManager(pv.ViewID);
             ItemManager.Instance.SetPlayerManager(pv.ViewID);
 
             if (PhotonNetwork.IsMasterClient)
@@ -139,10 +137,9 @@ public class PlayerManager : MonoBehaviourPunCallbacks
 
             if (_role == "robber")
             {
-                hud.ShowRobberOverlay();
+                HUD.Instance.ShowRobberOverlay();
             }
         }
-            
     }
 
     public void SetArrested(bool _isArrested)
@@ -154,10 +151,6 @@ public class PlayerManager : MonoBehaviourPunCallbacks
     private void RPC_SetArrested(bool _isArrested)
     {
         isArrested = _isArrested;
-        if (_isArrested)
-            Debug.Log("Arrested");
-        else
-            Debug.Log("Freed");
     }
 
     public void Die()
@@ -168,10 +161,10 @@ public class PlayerManager : MonoBehaviourPunCallbacks
         CreateController(SpawnManager.Instance.SelectSpawnpointById(SpawnManager.Instance.GetSpawnpointIdByRole(role)));
     }
 
-    public override void OnPlayerPropertiesUpdate(Player targetPlayer, ExitGames.Client.Photon.Hashtable changedProps)
+    public override void OnPlayerPropertiesUpdate(Player targetPlayer, Hashtable changedProps)
     {
         if (pv.IsMine && targetPlayer == PhotonNetwork.LocalPlayer && changedProps.ContainsKey("money"))
-            hud.SetMoney((int) PhotonNetwork.LocalPlayer.CustomProperties["money"]);
+            HUD.Instance.SetMoney((int) PhotonNetwork.LocalPlayer.CustomProperties["money"]);
         base.OnPlayerPropertiesUpdate(targetPlayer, changedProps);
     }
 }

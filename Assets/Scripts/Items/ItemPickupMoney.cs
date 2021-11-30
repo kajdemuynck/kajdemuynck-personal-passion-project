@@ -9,14 +9,14 @@ public class ItemPickupMoney : ItemPickup
 {
     private int value;
 
-    public override void CheckInteraction(PlayerInput playerInput)
+    public override void Interact(RaycastHit hit, bool isInteracting)
     {
-        if (Mouse.current.leftButton.isPressed)
+        if (isInteracting)
         {
             CollectMoney();
         }
 
-        base.CheckInteraction(playerInput);
+        base.Interact(hit, isInteracting);
     }
 
     public void CollectMoney()

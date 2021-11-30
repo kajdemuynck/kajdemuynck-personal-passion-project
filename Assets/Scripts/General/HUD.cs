@@ -8,7 +8,10 @@ using UnityEngine.UI;
 
 public class HUD : MonoBehaviourPunCallbacks
 {
-    PlayerManager pm;
+    public static HUD Instance;
+
+    public PlayerManager pm;
+    public PlayerController pc;
     [SerializeField] Canvas touchControls;
     [SerializeField] TMP_Text itemDescriptionText;
     [SerializeField] GameObject pauseMenu;
@@ -18,6 +21,17 @@ public class HUD : MonoBehaviourPunCallbacks
 
     private void Awake()
     {
+        if (Instance == null)
+        {
+            Instance = this;
+        }
+        else if (Instance != this)
+        {
+            Destroy(Instance.gameObject);
+            Instance = this;
+        }
+        //DontDestroyOnLoad(gameObject);
+
         if (Application.isMobilePlatform)
             touchControls.gameObject.SetActive(true);
     }
@@ -25,6 +39,11 @@ public class HUD : MonoBehaviourPunCallbacks
     public void SetPlayerManager(int pvid)
     {
         pm = PhotonView.Find(pvid).GetComponent<PlayerManager>();
+    }
+
+    public void SetPlayerController(int pvid)
+    {
+        pc = PhotonView.Find(pvid).GetComponent<PlayerController>();
     }
 
     public void ShowRobberOverlay()
