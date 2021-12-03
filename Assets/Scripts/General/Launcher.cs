@@ -16,12 +16,10 @@ public class Launcher : MonoBehaviourPunCallbacks
 
     public static Launcher Instance;
 
-    [SerializeField] TMP_InputField usernameInput;
-    [SerializeField] TMP_InputField roomNameInput;
     [SerializeField] TMP_Text roomNameText;
     [SerializeField] TMP_Text roomsAmountText;
     [SerializeField] TMP_Text roomCodeError;
-    [SerializeField] Transform roomListContainer;
+    [SerializeField] Transform roomListContent;
     [SerializeField] Transform playerListContent;
     [SerializeField] GameObject roomListItemPrefab;
     [SerializeField] GameObject playerListItemPrefab;
@@ -47,13 +45,21 @@ public class Launcher : MonoBehaviourPunCallbacks
         //if (PlayerPrefs.HasKey("username"))
         //    usernameInput.text = PlayerPrefs.GetString("username");
         //MenuManager.Instance.OpenMenu("login");
-
-        if (!PhotonNetwork.IsConnected)
-            ConnectToServer();
+                
         encodedQRcode = new Texture2D(256, 256);
 
         if (!Application.isMobilePlatform)
             scanCodeButton.gameObject.SetActive(false);
+
+        if (!PhotonNetwork.IsConnected)
+            ConnectToServer();
+        else
+        {
+            if (PhotonNetwork.InRoom)
+                OnJoinedRoom();
+            else
+                MenuManager.Instance.OpenMenu("main");
+        }
     }
 
     // Connecting
@@ -89,9 +95,9 @@ public class Launcher : MonoBehaviourPunCallbacks
             PhotonNetwork.LoadLevel(0);
         }
 
+        StopCoroutine(UpdatePing());
         MenuManager.Instance.OpenMenu("disconnected");
         Debug.Log("Disconnected from server: " + cause.ToString());
-        StopCoroutine(UpdatePing());
     }
 
     // Create room
@@ -111,8 +117,9 @@ public class Launcher : MonoBehaviourPunCallbacks
 
     public override void OnCreateRoomFailed(short returnCode, string message)
     {
-        //errorText.text = "Room creation failed: " + message;
+        roomCodeError.text = "Room creation failed: " + message;
         MenuManager.Instance.OpenMenu("error");
+        Debug.Log("OnCreateRoomFailed");
     }
 
     public void OnAccessStateChanged()
@@ -150,6 +157,7 @@ public class Launcher : MonoBehaviourPunCallbacks
 
     public override void OnJoinRoomFailed(short returnCode, string message)
     {
+        Debug.Log("OnJoinRoomFailed");
         roomCodeError.text = "Room joining failed: " + message;
         roomCodeError.gameObject.SetActive(true);
         //MenuManager.Instance.OpenMenu("error");
@@ -172,19 +180,25 @@ public class Launcher : MonoBehaviourPunCallbacks
         Player[] players = PhotonNetwork.PlayerList;
 
         foreach (Transform child in playerListContent)
-        {
             Destroy(child.gameObject);
-        }
 
         for (int i = 0; i < players.Length; i++)
         {
             Instantiate(playerListItemPrefab, playerListContent).GetComponent<PlayerListItem>().Setup(players[i]);
         }
 
+        float width = playerListContent.gameObject.GetComponent<RectTransform>().sizeDelta.x;
+        float height = (players.Length * 28) + 8;
+        playerListContent.gameObject.GetComponent<RectTransform>().sizeDelta = new Vector2(width, height);
+
         if (!PhotonNetwork.IsMasterClient)
         {
             publicToggle.interactable = false;
             publicToggle.transform.GetChild(0).gameObject.SetActive(false);
+        }
+        else
+        {
+            publicToggle.isOn = PhotonNetwork.CurrentRoom.IsVisible;
         }
 
         startGameButton.SetActive(PhotonNetwork.IsMasterClient);
@@ -193,6 +207,10 @@ public class Launcher : MonoBehaviourPunCallbacks
     public override void OnPlayerEnteredRoom(Player newPlayer)
     {
         Instantiate(playerListItemPrefab, playerListContent).GetComponent<PlayerListItem>().Setup(newPlayer);
+
+        float width = playerListContent.gameObject.GetComponent<RectTransform>().sizeDelta.x;
+        float height = (PhotonNetwork.PlayerList.Length * 28) + 8;
+        playerListContent.gameObject.GetComponent<RectTransform>().sizeDelta = new Vector2(width, height);
     }
 
     public void LeaveRoom()
@@ -219,10 +237,8 @@ public class Launcher : MonoBehaviourPunCallbacks
     public override void OnRoomListUpdate(List<RoomInfo> roomList)
     {
         roomListNames.Clear();
-        foreach (Transform t in roomListContainer)
-        {
+        foreach (Transform t in roomListContent)
             Destroy(t.gameObject);
-        }
 
         int rooms = 0;
         for (int i = 0; i < roomList.Count; i++)
@@ -237,11 +253,14 @@ public class Launcher : MonoBehaviourPunCallbacks
             if (roomList[i].IsVisible)
             {
                 rooms++;
-                Instantiate(roomListItemPrefab, roomListContainer).GetComponent<RoomListItem>().Setup(roomList[i]);
+                Instantiate(roomListItemPrefab, roomListContent).GetComponent<RoomListItem>().Setup(roomList[i]);
             }
         }
 
         roomsAmountText.text = string.Format("({0})", rooms);
+        float width = roomListContent.gameObject.GetComponent<RectTransform>().sizeDelta.x;
+        float height = (rooms * 28) + 8;
+        roomListContent.gameObject.GetComponent<RectTransform>().sizeDelta = new Vector2(width, height);
     }
 
     public override void OnRoomPropertiesUpdate(Hashtable propertiesThatChanged)
@@ -310,6 +329,8 @@ public class Launcher : MonoBehaviourPunCallbacks
 
     private void EncodeTextToQRcode(string code)
     {
+        Debug.Log(encodedQRcode.width);
+        Debug.Log(encodedQRcode.height);
         Color32[] convertPixelToTexture = EncodeBarcode(code, encodedQRcode.width, encodedQRcode.height);
         encodedQRcode.SetPixels32(convertPixelToTexture);
         encodedQRcode.Apply();

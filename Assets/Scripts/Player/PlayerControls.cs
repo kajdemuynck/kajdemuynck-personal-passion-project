@@ -142,7 +142,7 @@ public class @PlayerControls : IInputActionCollection, IDisposable
                     ""id"": ""bc866aec-288a-49ba-a546-8914154015be"",
                     ""path"": ""<Gamepad>/rightStick"",
                     ""interactions"": """",
-                    ""processors"": ""StickDeadzone"",
+                    ""processors"": ""StickDeadzone,ScaleVector2(x=2,y=2)"",
                     ""groups"": """",
                     ""action"": ""Look"",
                     ""isComposite"": false,

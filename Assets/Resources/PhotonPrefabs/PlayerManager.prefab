@@ -66,6 +66,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e48b19cc9f0924b2ca6940541e2f74de, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  pv: {fileID: 0}
   controller: {fileID: 0}
   role: 
   isArrested: 0
+  hasFinishedSpree: 0

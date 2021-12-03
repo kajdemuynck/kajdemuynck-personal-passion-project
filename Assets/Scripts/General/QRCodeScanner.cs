@@ -42,7 +42,7 @@ public class QRCodeScanner : MonoBehaviour
 
     private void UpdateCameraRender()
     {
-        if (!isCameraAvailable)
+        if (!isCameraAvailable || !gameObject.activeSelf)
             return;
 
         int orientation = -cameraTexture.videoRotationAngle;
@@ -133,7 +133,8 @@ public class QRCodeScanner : MonoBehaviour
     {
         while (true)
         {
-            Scan();
+            if (!gameObject.activeSelf)
+                Scan();
 
             yield return new WaitForSeconds(1f);
         }

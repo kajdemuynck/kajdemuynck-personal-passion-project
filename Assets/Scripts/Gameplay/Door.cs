@@ -1,9 +1,11 @@
 using System.Collections;
 using System.Collections.Generic;
+using Photon.Pun;
 using UnityEngine;
 
 public class Door : MonoBehaviour, IInteractable
 {
+    PhotonView pv;
     [SerializeField] GameObject key;
 
     public bool isKey = false;
@@ -14,6 +16,7 @@ public class Door : MonoBehaviour, IInteractable
 
     private void Awake()
     {
+        pv = GetComponent<PhotonView>();
         anim = GetComponent<Animator>();
         SetKey(isKey);
     }
@@ -23,7 +26,6 @@ public class Door : MonoBehaviour, IInteractable
         isKey = _isKey;
         key.SetActive(_isKey);
     }
-
 
     bool isPlaying(string stateName)
     {
@@ -44,27 +46,25 @@ public class Door : MonoBehaviour, IInteractable
                 {
                     if (isKey)
                     {
-                        HUD.Instance.ShowDescription("Open door");
+                        GameplayManager.Instance.ShowDescription("Open door");
 
                         if (isInteracting)
                         {
-                            anim.Play("DoorOpen", 0, 0.0f);
-                            isOpen = true;
+                            SyncDoor(true);
                         }
                     }
                     else
                     {
-                        HUD.Instance.ShowDescription("Need key");
+                        GameplayManager.Instance.ShowDescription("Need key");
                     }
                 }
                 else
                 {
-                    HUD.Instance.ShowDescription("Close door");
+                    GameplayManager.Instance.ShowDescription("Close door");
 
                     if (isInteracting)
                     {
-                        anim.Play("DoorClose", 0, 0.0f);
-                        isOpen = false;
+                        SyncDoor(false);
                     }
                 }
             }
@@ -74,16 +74,16 @@ public class Door : MonoBehaviour, IInteractable
                 {
                     if (Inventory.Instance.CheckInventory("key"))
                     {
-                        HUD.Instance.ShowDescription("Already have a key");
+                        GameplayManager.Instance.ShowDescription("Already have a key");
                     }
                     else
                     {
-                        HUD.Instance.ShowDescription("Take key");
+                        GameplayManager.Instance.ShowDescription("Take key");
 
                         if (isInteracting)
                         {
                             Inventory.Instance.SetItemInInventory("key");
-                            SetKey(false);
+                            SyncKey(false);
                         }
                     }
                 }
@@ -91,20 +91,47 @@ public class Door : MonoBehaviour, IInteractable
                 {
                     if (Inventory.Instance.CheckInventory("key"))
                     {
-                        HUD.Instance.ShowDescription("Place key");
+                        GameplayManager.Instance.ShowDescription("Place key");
 
                         if (isInteracting)
                         {
                             Inventory.Instance.SetItemInInventory("key");
-                            SetKey(true);
+                            SyncKey(true);
                         }
                     }
                     else
                     {
-                        HUD.Instance.ShowDescription("Need key");
+                        GameplayManager.Instance.ShowDescription("Need key");
                     }
                 }
             }
         }
+    }
+
+    public void SyncDoor(bool _isOpen)
+    {
+        pv.RPC("RPC_SyncDoor", RpcTarget.All, _isOpen);
+    }
+
+    [PunRPC]
+    private void RPC_SyncDoor(bool _isOpen)
+    {
+        if (_isOpen)
+            anim.Play("DoorOpen", 0, 0.0f);
+        else
+            anim.Play("DoorClose", 0, 0.0f);
+
+        isOpen = _isOpen;
+    }
+
+    public void SyncKey(bool _isKey)
+    {
+        pv.RPC("RPC_SyncKey", RpcTarget.All, _isKey);
+    }
+
+    [PunRPC]
+    private void RPC_SyncKey(bool _isKey)
+    {
+        SetKey(_isKey);
     }
 }

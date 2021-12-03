@@ -11,11 +11,13 @@ using Hashtable = ExitGames.Client.Photon.Hashtable;
 
 public class PlayerManager : MonoBehaviourPunCallbacks
 {
-    PhotonView pv;
+    public PhotonView pv;
     public GameObject controller;
 
     public string role;
+    private bool hasAssigned = false;
     public bool isArrested = false;
+    public bool hasFinishedSpree = false;
     private bool isPaused = false;
     public bool IsPaused
     {
@@ -28,9 +30,9 @@ public class PlayerManager : MonoBehaviourPunCallbacks
         {
             isPaused = value;
             if (value)
-                HUD.Instance.ShowPauseMenu();
+                GameplayManager.Instance.ShowPauseMenu();
             else
-                HUD.Instance.HidePauseMenu();
+                GameplayManager.Instance.HidePauseMenu();
         }
     }
 
@@ -46,18 +48,28 @@ public class PlayerManager : MonoBehaviourPunCallbacks
     {
         if (pv.IsMine)
         {
-            HUD.Instance.SetPlayerManager(pv.ViewID);
+            GameplayManager.Instance.SetPlayerManager(pv.ViewID);
             ItemManager.Instance.SetPlayerManager(pv.ViewID);
 
             if (PhotonNetwork.IsMasterClient)
             {
-                StartCoroutine(AssignRolesToPlayers());
-
                 Hashtable hash = new Hashtable();
+                hash.Add("startTime", (float)PhotonNetwork.Time);
                 hash.Add("totalmoney", 0);
                 PhotonNetwork.CurrentRoom.SetCustomProperties(hash);
             }
         }
+    }
+
+    public override void OnRoomPropertiesUpdate(Hashtable propertiesThatChanged)
+    {
+        if (propertiesThatChanged.ContainsKey("startTime") && !hasAssigned && pv.IsMine && PhotonNetwork.IsMasterClient)
+        {
+            Debug.Log((float)PhotonNetwork.CurrentRoom.CustomProperties["startTime"]);
+            StartCoroutine(AssignRolesToPlayers());
+        }
+
+        base.OnRoomPropertiesUpdate(propertiesThatChanged);
     }
 
     public IEnumerator AssignRolesToPlayers()
@@ -69,12 +81,14 @@ public class PlayerManager : MonoBehaviourPunCallbacks
         {
             playerList = PhotonNetwork.CurrentRoom.Players.Values.ToArray();
             playerManagers = FindObjectsOfType<PlayerManager>();
-            Debug.Log("Players: " + playerList.Length);
-            Debug.Log("Managers: " + playerManagers.Length);
+            Debug.Log(string.Format("Players: {0}", playerList.Length));
+            Debug.Log(string.Format("PlayerManagers: {0}", playerManagers.Length));
 
             yield return null;
         }
         while (playerList.Length > playerManagers.Length);
+
+        hasAssigned = true;
 
         Dictionary<Player, PlayerManager> playerManagersOfPlayers = new Dictionary<Player, PlayerManager>();
 
@@ -102,8 +116,7 @@ public class PlayerManager : MonoBehaviourPunCallbacks
             while (spawnpointsTaken.Contains(randomSpawnpointId));
             spawnpointsTaken.Add(randomSpawnpointId);
 
-            Debug.Log(player.NickName);
-            Debug.Log(roles[division[randomRole]]);
+            Debug.Log(string.Format("{0}: {1}", player.NickName, roles[division[randomRole]]));
 
             playerManagersOfPlayers[player].AssignRole(_role, randomSpawnpointId);
         }
@@ -114,7 +127,15 @@ public class PlayerManager : MonoBehaviourPunCallbacks
         //Transform spawnpoint = SpawnManager.Instance.GetSpawnpoint();
         //controller = PhotonNetwork.Instantiate(Path.Combine("PhotonPrefabs", "PlayerController"), spawnpoint.position, spawnpoint.rotation, 0, new object[] { photonView.ViewID });
         Hashtable hash = new Hashtable();
-        hash.Add("money", 0);
+        if (role == "robber")
+        {
+            hash.Add("money", 0);
+        }
+        else
+        {
+            hash.Add("arrests", 0);
+            hash.Add("firstarrest", 0);
+        }
         PhotonNetwork.LocalPlayer.SetCustomProperties(hash);
         controller = PhotonNetwork.Instantiate(Path.Combine("PhotonPrefabs", "PlayerController"), spawnpoint.position, spawnpoint.rotation, 0, new object[] { pv.ViewID, role });
     }
@@ -127,19 +148,29 @@ public class PlayerManager : MonoBehaviourPunCallbacks
     [PunRPC]
     private void RPC_AssignRole(string _role, int _spawnpointId)
     {
-        Debug.Log("Role received");
-        Debug.Log(_role);
+        Debug.Log(string.Format("Role received: {0}", _role));
         role = _role;
 
         if (pv.IsMine)
         {
+            GameplayManager.Instance.startTime = (float) PhotonNetwork.CurrentRoom.CustomProperties["startTime"];
+            GameplayManager.Instance.SwitchToMainCamera(false);
+
             CreateController(SpawnManager.Instance.SelectSpawnpointById(_spawnpointId));
+            GameplayManager.Instance.SwitchToMainCamera(false);
+            controller.GetComponent<PlayerController>().cameraContainer.GetComponentInChildren<Camera>().enabled = true;
 
             if (_role == "robber")
             {
-                HUD.Instance.ShowRobberOverlay();
+                GameplayManager.Instance.ShowRobberOverlay();
+            }
+            else if (_role == "agent")
+            {
+                GameplayManager.Instance.ShowAgentOverlay();
             }
         }
+
+        Debug.Log(string.Format("{0}: {1}", pv.Owner, role));
     }
 
     public void SetArrested(bool _isArrested)
@@ -151,6 +182,29 @@ public class PlayerManager : MonoBehaviourPunCallbacks
     private void RPC_SetArrested(bool _isArrested)
     {
         isArrested = _isArrested;
+        GameplayManager.Instance.CheckIfMatchIsFinished();
+    }
+
+    public void FinishSpree()
+    {
+        pv.RPC("RPC_FinishSpree", RpcTarget.All);
+    }
+
+    [PunRPC]
+    private void RPC_FinishSpree()
+    {
+        hasFinishedSpree = true;
+
+        int moneyCollected = (int)PhotonNetwork.LocalPlayer.CustomProperties["money"];
+        int previousTotal = (int)PhotonNetwork.CurrentRoom.CustomProperties["totalmoney"];
+        int totalMoney = previousTotal + moneyCollected;
+
+        Hashtable hash = new Hashtable();
+        hash.Add("totalmoney", totalMoney);
+        PhotonNetwork.CurrentRoom.SetCustomProperties(hash);
+
+        //Debug.Log(string.Format("Total money collected: {0}", totalMoney));
+        //GameplayManager.Instance.CheckIfMatchIsFinished();
     }
 
     public void Die()
@@ -164,7 +218,7 @@ public class PlayerManager : MonoBehaviourPunCallbacks
     public override void OnPlayerPropertiesUpdate(Player targetPlayer, Hashtable changedProps)
     {
         if (pv.IsMine && targetPlayer == PhotonNetwork.LocalPlayer && changedProps.ContainsKey("money"))
-            HUD.Instance.SetMoney((int) PhotonNetwork.LocalPlayer.CustomProperties["money"]);
+            GameplayManager.Instance.SetMoney((int) PhotonNetwork.LocalPlayer.CustomProperties["money"]);
         base.OnPlayerPropertiesUpdate(targetPlayer, changedProps);
     }
 }

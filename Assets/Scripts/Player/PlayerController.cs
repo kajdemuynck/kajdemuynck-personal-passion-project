@@ -18,7 +18,7 @@ public class PlayerController : MonoBehaviourPunCallbacks, IInteractable
     private InputAction pauseAction;
     public InputAction interactAction;
 
-    [SerializeField] GameObject cameraContainer;
+    public GameObject cameraContainer;
     [SerializeField] GameObject graphicsContainer;
     [SerializeField] float mouseSensitivity, walkSpeed, sprintSpeed, jumpSpeed, smoothTime;
 
@@ -27,7 +27,6 @@ public class PlayerController : MonoBehaviourPunCallbacks, IInteractable
     private float interactionDistancePlayer = 3f;
     private bool isHolding = false;
     private bool isReleased = true;
-    public bool hasFinishedSpree = false;
     Vector3 smoothMoveVelocity;
     Vector3 moveAmount;
 
@@ -74,7 +73,7 @@ public class PlayerController : MonoBehaviourPunCallbacks, IInteractable
             Hashtable hash = new Hashtable();
             hash.Add("money", 0);
             PhotonNetwork.LocalPlayer.SetCustomProperties(hash);
-            HUD.Instance.SetPlayerController(pv.ViewID);
+            GameplayManager.Instance.SetPlayerController(pv.ViewID);
         }
         else
         {
@@ -97,7 +96,16 @@ public class PlayerController : MonoBehaviourPunCallbacks, IInteractable
 
     private void Update()
     {
-        if (!pv.IsMine || pm.IsPaused)
+        if (!pv.IsMine)
+            return;
+
+        float pastTime = (float) PhotonNetwork.Time - GameplayManager.Instance.startTime;
+        if (pastTime >= GameplayManager.Instance.maxTime)
+            GameplayManager.Instance.EndMatch();
+
+        GameplayManager.Instance.SetTime(GameplayManager.Instance.maxTime - pastTime);
+
+        if (pm.IsPaused)
             return;
 
         if (pauseAction.ReadValue<float>() > 0)
@@ -109,13 +117,16 @@ public class PlayerController : MonoBehaviourPunCallbacks, IInteractable
 
         Look();
 
-        if (hasFinishedSpree)
+        if (pm.hasFinishedSpree)
             return;
 
         CheckInteraction();
 
         if (pm.isArrested && pm.role == "robber")
+        {
+            moveAmount = Vector3.zero;
             return;
+        }
 
         Move();
         Jump();
@@ -161,9 +172,9 @@ public class PlayerController : MonoBehaviourPunCallbacks, IInteractable
                 vertical = (lookJoystick.Vertical + treshold) * 2;
         }
 
-        transform.Rotate(Vector3.up * horizontal * mouseSensitivity);
+        transform.Rotate(Vector3.up * horizontal * GameplayManager.Instance.sensitivity);
 
-        verticalLookRotation += vertical * mouseSensitivity;
+        verticalLookRotation += vertical * GameplayManager.Instance.sensitivity;
         verticalLookRotation = Mathf.Clamp(verticalLookRotation, -90f, 90f);
 
         cameraContainer.transform.localEulerAngles = Vector3.left * verticalLookRotation;
@@ -220,38 +231,76 @@ public class PlayerController : MonoBehaviourPunCallbacks, IInteractable
 
             while (interactableObj == null && checkingObj.transform.parent != null)
             {
-                Debug.Log(checkingObj.name);
                 checkingObj = checkingObj.transform.parent.gameObject;
                 if (checkingObj.GetComponent<IInteractable>() != null)
                     interactableObj = checkingObj;
             }
 
-            //do
-            //{
-            //    Debug.Log(checkingObj.name);
-            //    if (checkingObj.GetComponent<IInteractable>() != null)
-            //        interactableObj = checkingObj;
-            //    else
-            //        checkingObj = checkingObj.transform.parent.gameObject;
-            //}
-            //while (interactableObj == null && checkingObj.transform.parent != null);
-
-
-
             if (interactableObj != null)
             {
-                Debug.Log(interactableObj.name);
-                interactableObj.GetComponent<IInteractable>().Interact(raycasthit, isInteracting);
+                if (!(pm.role == "agent" && interactableObj.GetComponent<ItemPickupMoney>()))
+                {
+                    interactableObj.GetComponent<IInteractable>().Interact(raycasthit, isInteracting);
+                }
             }
             else
-                HUD.Instance.HideDescription();
-
-            //(ItemManager.Instance.CheckInteraction(hit))
+                GameplayManager.Instance.HideDescription();
         }
         else
         {
-            HUD.Instance.HideDescription();
+            GameplayManager.Instance.HideDescription();
         }
+    }
+
+    public void Interact(RaycastHit hit, bool isInteracting)
+    {
+        if (hit.distance <= interactionDistancePlayer && pm.pv.Owner != GameplayManager.Instance.pm.pv.Owner)
+        {
+            PlayerController pc = hit.collider.gameObject.GetComponent<PlayerController>();
+
+            if (GameplayManager.Instance.pm.role == "agent" && pc.pm.role == "robber" && !pc.pm.isArrested)
+            {
+                if (isInteracting)
+                {
+                    int arrests = (int)PhotonNetwork.LocalPlayer.CustomProperties["arrests"];
+                    arrests++;
+                    Hashtable hash = new Hashtable();
+                    hash.Add("arrests", arrests);
+
+                    if (arrests == 1)
+                        hash.Add("firstarrest", (float) PhotonNetwork.Time - GameplayManager.Instance.startTime);
+
+                    PhotonNetwork.LocalPlayer.SetCustomProperties(hash);
+                    //Debug.Log(arrests);
+                    pc.pm.SetArrested(true);
+                    GameplayManager.Instance.HideDescription();
+                }
+                else
+                    GameplayManager.Instance.ShowDescription("Arrest");
+            }
+            else if (GameplayManager.Instance.pm.role == "robber" && pc.pm.role == "robber" && pc.pm.isArrested)
+            {
+                if (isInteracting)
+                {
+                    pc.pm.SetArrested(false);
+                    GameplayManager.Instance.HideDescription();
+                }
+                else
+                    GameplayManager.Instance.ShowDescription("Free");
+            }
+        }
+    }
+
+    protected bool CheckIsLookingAtObject()
+    {
+        if (Camera.main != null)
+        {
+            Ray ray = Camera.main.ViewportPointToRay(new Vector3(0.5f, 0.5f));
+            ray.origin = Camera.main.transform.position;
+            return Physics.Raycast(ray, out raycasthit, 10f, ~EnvironmentLayer);
+        }
+        else
+            return false;
     }
 
     private bool CheckIsInteractingWithObject(RaycastHit hit)
@@ -260,7 +309,7 @@ public class PlayerController : MonoBehaviourPunCallbacks, IInteractable
 
         isHolding = false;
 
-        if (HUD.Instance.pc.interactAction.ReadValue<float>() > 0 && !Application.isMobilePlatform)
+        if (GameplayManager.Instance.pc.interactAction.ReadValue<float>() > 0 && !Application.isMobilePlatform)
         {
             isHolding = true;
         }
@@ -297,47 +346,6 @@ public class PlayerController : MonoBehaviourPunCallbacks, IInteractable
         return false;
     }
 
-    public void Interact(RaycastHit hit, bool isInteracting)
-    {
-        if (hit.distance <= interactionDistancePlayer)
-        {
-            PlayerController pc = hit.collider.gameObject.GetComponent<PlayerController>();
-
-            if (pm.role == "agent" && pc.pm.role == "robber" && !pc.pm.isArrested)
-            {
-                if (isInteracting)
-                {
-                    pc.pm.SetArrested(true);
-                    HUD.Instance.HideDescription();
-                }
-                else
-                    HUD.Instance.ShowDescription("Arrest");
-            }
-            else if (pm.role == "robber" && pc.pm.role == "robber" && pc.pm.isArrested)
-            {
-                if (isInteracting)
-                {
-                    pc.pm.SetArrested(false);
-                    HUD.Instance.HideDescription();
-                }
-                else
-                    HUD.Instance.ShowDescription("Free");
-            }
-        }
-    }
-
-    protected bool CheckIsLookingAtObject()
-    {
-        if (Camera.main != null)
-        {
-            Ray ray = Camera.main.ViewportPointToRay(new Vector3(0.5f, 0.5f));
-            ray.origin = Camera.main.transform.position;
-            return Physics.Raycast(ray, out raycasthit, 10f, ~EnvironmentLayer);
-        }
-        else
-            return false;
-    }
-
     public void SetGrounded(bool _grounded)
     {
         grounded = _grounded;
@@ -350,34 +358,10 @@ public class PlayerController : MonoBehaviourPunCallbacks, IInteractable
 
     public void SetCharacter(string role)
     {
-        Debug.Log("Setting role...");
-        //Mesh mesh = GetComponentInChildren<MeshFilter>().mesh;
-        //Renderer renderer = GetComponentInChildren<Renderer>();
-
-        GameObject meshPrefab = Resources.Load(string.Format("Characters/PlayerGraphics{0}{1}", char.ToUpper(role[0]), role.Substring(1))) as GameObject;
-        Instantiate(meshPrefab, graphicsContainer.transform, false);
-    }
-
-    public void FinishSpree()
-    {
-        hasFinishedSpree = true;
-
-        int moneyCollected = (int) PhotonNetwork.LocalPlayer.CustomProperties["money"];
-        int previousTotal = (int)PhotonNetwork.CurrentRoom.CustomProperties["totalmoney"];
-        int totalMoney = previousTotal + moneyCollected;
-
-        Hashtable hash = new Hashtable();
-        hash.Add("totalmoney", totalMoney);
-        PhotonNetwork.CurrentRoom.SetCustomProperties(hash);
-
-        Debug.Log(string.Format("Total money collected: {0}", totalMoney));
-    }
-
-    public override void OnPlayerPropertiesUpdate(Player targetPlayer, Hashtable changedProps)
-    {
-        if (!pv.IsMine && targetPlayer == pv.Owner)
+        if (!pv.IsMine)
         {
-            // Do something
+            GameObject meshPrefab = Resources.Load(string.Format("Characters/PlayerGraphics{0}{1}", char.ToUpper(role[0]), role.Substring(1))) as GameObject;
+            Instantiate(meshPrefab, graphicsContainer.transform, false);
         }
     }
 }

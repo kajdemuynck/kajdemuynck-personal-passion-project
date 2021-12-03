@@ -23,7 +23,7 @@ public class ItemPickup : MonoBehaviourPunCallbacks, IInteractable
     {
         if (hit.distance <= interactionDistance)
         {
-            HUD.Instance.ShowDescription(description);
+            GameplayManager.Instance.ShowDescription(description);
 
             if (isInteracting)
             {
@@ -32,7 +32,7 @@ public class ItemPickup : MonoBehaviourPunCallbacks, IInteractable
             }
         }
         else
-            HUD.Instance.HideDescription();
+            GameplayManager.Instance.HideDescription();
     }
 
     private int CreateID()
