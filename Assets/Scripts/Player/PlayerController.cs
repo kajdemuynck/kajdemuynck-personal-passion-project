@@ -8,6 +8,7 @@ using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.EnhancedTouch;
 using Touch = UnityEngine.InputSystem.EnhancedTouch.Touch;
 using Hashtable = ExitGames.Client.Photon.Hashtable;
+using UnityEngine.EventSystems;
 
 public class PlayerController : MonoBehaviourPunCallbacks, IInteractable
 {
@@ -83,15 +84,11 @@ public class PlayerController : MonoBehaviourPunCallbacks, IInteractable
 
         if (pv.IsMine && Application.isMobilePlatform)
         {
-            TouchControls tc = GameObject.Find("TouchControls").GetComponent<TouchControls>();
-            //tc.ActivateControls();
-            moveJoystick = tc.MoveJoystick;
-            lookJoystick = tc.LookJoystick;
-            pauseButton = tc.pauseButton;
+            moveJoystick = TouchControls.Instance.MoveJoystick;
+            lookJoystick = TouchControls.Instance.LookJoystick;
+            pauseButton = TouchControls.Instance.pauseButton;
             pauseButton.onClick.AddListener(PauseGame);
         }
-
-        //SetRole("robber");
     }
 
     private void Update()
@@ -225,6 +222,9 @@ public class PlayerController : MonoBehaviourPunCallbacks, IInteractable
         if (isLooking)
         {
             bool isInteracting = CheckIsInteractingWithObject(raycasthit);
+            if (TouchControls.Instance.grabButton.gameObject.GetComponent<ButtonActions>().isPressed)
+                isInteracting = true;
+            TouchControls.Instance.grabButton.gameObject.GetComponent<ButtonActions>().isPressed = false;
 
             GameObject checkingObj = raycasthit.collider.gameObject;
             GameObject interactableObj = checkingObj.GetComponent<IInteractable>() != null ? checkingObj : null;
@@ -244,11 +244,15 @@ public class PlayerController : MonoBehaviourPunCallbacks, IInteractable
                 }
             }
             else
+            {
                 GameplayManager.Instance.HideDescription();
+                TouchControls.Instance.grabButton.gameObject.SetActive(false);
+            }
         }
         else
         {
             GameplayManager.Instance.HideDescription();
+            TouchControls.Instance.grabButton.gameObject.SetActive(false);
         }
     }
 

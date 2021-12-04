@@ -55,7 +55,7 @@ public class GameplayManager : MonoBehaviourPunCallbacks
         pv = GetComponent<PhotonView>();
 
         if (Application.isMobilePlatform)
-            touchControls.gameObject.SetActive(true);
+            touchControls.enabled = true;
     }
 
     //private void Start()
@@ -136,11 +136,11 @@ public class GameplayManager : MonoBehaviourPunCallbacks
 
             // Info
             if (!pm.isArrested)
-                resultInfoText = string.Format("You stole ${0}",(int) PhotonNetwork.LocalPlayer.CustomProperties["money"]);
+                resultInfoText = string.Format("You stole ${0}", (int) PhotonNetwork.LocalPlayer.CustomProperties["money"]);
 
             // Money
-            if (arrested != robbers)
-                resultMoneyText = string.Format("For a total amount of ${0}",(int) PhotonNetwork.CurrentRoom.CustomProperties["totalmoney"]);
+            if (arrested < robbers)
+                resultMoneyText = string.Format("For a total amount of ${0}", (int) PhotonNetwork.CurrentRoom.CustomProperties["totalmoney"]);
 
             // Time
             if (endTime <= maxTime)
@@ -166,11 +166,11 @@ public class GameplayManager : MonoBehaviourPunCallbacks
             int arrests = (int) PhotonNetwork.LocalPlayer.CustomProperties["arrests"];
 
             if (arrests > 0)
-                resultInfoText = string.Format("You arrested {0} robbers",(int) PhotonNetwork.LocalPlayer.CustomProperties["arrests"]);
+                resultInfoText = string.Format("You arrested {0} robber{1}", (int) PhotonNetwork.LocalPlayer.CustomProperties["arrests"], robbers != 1 ? "s" : "");
 
             // Money
             if (arrested != robbers)
-                resultMoneyText = string.Format("They were able to steal ${0}", (int)PhotonNetwork.CurrentRoom.CustomProperties["totalmoney"]);
+                resultMoneyText = string.Format("They were able to steal ${0}", (int) PhotonNetwork.CurrentRoom.CustomProperties["totalmoney"]);
 
             // Time
             if (endTime <= maxTime)

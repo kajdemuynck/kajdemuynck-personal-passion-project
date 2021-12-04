@@ -752,14 +752,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d744029d323b34de78a83f1e86097fd1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  usernameInput: {fileID: 1944187970}
-  roomNameInput: {fileID: 475508980}
   roomNameText: {fileID: 1771069421}
   roomsAmountText: {fileID: 988934051}
   roomCodeError: {fileID: 607754992}
-  roomListContainer: {fileID: 1947056698}
   roomListContent: {fileID: 1535301525}
-  playerListContainer: {fileID: 519772580}
   playerListContent: {fileID: 230704844}
   roomListItemPrefab: {fileID: 317631335179942713, guid: e4993873a25034cd9906528605703f00, type: 3}
   playerListItemPrefab: {fileID: 761206976120680779, guid: 6fc563278e4564a15ae264539df4f73b, type: 3}
@@ -950,10 +946,10 @@ RectTransform:
   m_Father: {fileID: 979944666}
   m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0, y: 1}
-  m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: 50, y: -50}
-  m_SizeDelta: {x: 100, y: 0}
+  m_AnchorMin: {x: 0, y: 0}
+  m_AnchorMax: {x: 0, y: 0}
+  m_AnchoredPosition: {x: 0, y: 0}
+  m_SizeDelta: {x: 0, y: 100}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &129649866
 MonoBehaviour:
@@ -3969,7 +3965,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!108 &705507994
 Light:
   m_ObjectHideFlags: 0
@@ -10773,10 +10769,10 @@ RectTransform:
   m_Father: {fileID: 979944666}
   m_RootOrder: 1
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0, y: 1}
-  m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: 165, y: -50}
-  m_SizeDelta: {x: 100, y: 0}
+  m_AnchorMin: {x: 0, y: 0}
+  m_AnchorMax: {x: 0, y: 0}
+  m_AnchoredPosition: {x: 0, y: 0}
+  m_SizeDelta: {x: 0, y: 100}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &2054941459
 MonoBehaviour:

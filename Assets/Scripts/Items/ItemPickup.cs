@@ -17,6 +17,7 @@ public class ItemPickup : MonoBehaviourPunCallbacks, IInteractable
     {
         id = CreateID();
         //itemManager = GameObject.Find("ItemManager").GetComponent<ItemManager>();
+        //TouchControls.Instance.grabButton.onClick.AddListener(TakeItem);
     }
 
     public virtual void Interact(RaycastHit hit, bool isInteracting)
@@ -24,15 +25,22 @@ public class ItemPickup : MonoBehaviourPunCallbacks, IInteractable
         if (hit.distance <= interactionDistance)
         {
             GameplayManager.Instance.ShowDescription(description);
+            TouchControls.Instance.grabButton.gameObject.SetActive(true);
 
-            if (isInteracting)
-            {
-                Inventory.Instance.SetItemInInventory(type);
-                ItemManager.Instance.RemoveItem(gameObject);
-            }
+            if (isInteracting)// && EventSystem.current.currentSelectedGameObject.name == TouchControls.Instance.grabButton.gameObject.name)
+                TakeItem();
         }
         else
+        {
             GameplayManager.Instance.HideDescription();
+            TouchControls.Instance.grabButton.gameObject.SetActive(false);
+        }
+    }
+
+    private void TakeItem()
+    {
+        Inventory.Instance.SetItemInInventory(type);
+        ItemManager.Instance.RemoveItem(gameObject);
     }
 
     private int CreateID()

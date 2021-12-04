@@ -12,9 +12,7 @@ public class ItemPickupMoney : ItemPickup
     public override void Interact(RaycastHit hit, bool isInteracting)
     {
         if (isInteracting)
-        {
             CollectMoney();
-        }
 
         base.Interact(hit, isInteracting);
     }
