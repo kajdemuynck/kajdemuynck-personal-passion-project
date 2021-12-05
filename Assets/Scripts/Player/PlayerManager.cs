@@ -195,13 +195,16 @@ public class PlayerManager : MonoBehaviourPunCallbacks
     {
         hasFinishedSpree = true;
 
-        int moneyCollected = (int)PhotonNetwork.LocalPlayer.CustomProperties["money"];
-        int previousTotal = (int)PhotonNetwork.CurrentRoom.CustomProperties["totalmoney"];
-        int totalMoney = previousTotal + moneyCollected;
+        if (pv.IsMine)
+        {
+            int previousTotal = (int)PhotonNetwork.CurrentRoom.CustomProperties["totalmoney"];
+            int moneyCollected = (int)PhotonNetwork.LocalPlayer.CustomProperties["money"];
+            int totalMoney = previousTotal + moneyCollected;
 
-        Hashtable hash = new Hashtable();
-        hash.Add("totalmoney", totalMoney);
-        PhotonNetwork.CurrentRoom.SetCustomProperties(hash);
+            Hashtable hash = new Hashtable();
+            hash.Add("totalmoney", totalMoney);
+            PhotonNetwork.CurrentRoom.SetCustomProperties(hash);
+        }
 
         //Debug.Log(string.Format("Total money collected: {0}", totalMoney));
         //GameplayManager.Instance.CheckIfMatchIsFinished();

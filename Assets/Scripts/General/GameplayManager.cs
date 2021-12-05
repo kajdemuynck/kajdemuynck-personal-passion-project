@@ -67,14 +67,14 @@ public class GameplayManager : MonoBehaviourPunCallbacks
     {
         if (PhotonNetwork.IsMasterClient)
         {
-            PlayerController[] playerControllers = FindObjectsOfType<PlayerController>();
+            PlayerManager[] playerManagers = FindObjectsOfType<PlayerManager>();
 
-            if (PhotonNetwork.CurrentRoom.PlayerCount == playerControllers.Length)
+            if (PhotonNetwork.CurrentRoom.PlayerCount == playerManagers.Length)
             {
                 isFinished = true;
 
-                foreach (PlayerController pc in playerControllers)
-                    if (pc.pm.role == "robber" && !pc.pm.isArrested && !pc.pm.hasFinishedSpree)
+                foreach (PlayerManager playerManager in playerManagers)
+                    if (playerManager.role == "robber" && !playerManager.isArrested && !playerManager.hasFinishedSpree)
                         isFinished = false;
 
                 if (isFinished)
@@ -113,6 +113,7 @@ public class GameplayManager : MonoBehaviourPunCallbacks
                 robbers++;
             else
                 agents++;
+
             if (playerManager.isArrested)
                 arrested++;
         }
@@ -135,7 +136,7 @@ public class GameplayManager : MonoBehaviourPunCallbacks
                 resultTitleText = string.Format("{0} robber{1} got away", escaped, escaped != 1 ? "s" : "");
 
             // Info
-            if (!pm.isArrested)
+            if (!pm.isArrested && (int)PhotonNetwork.LocalPlayer.CustomProperties["money"] > 0)
                 resultInfoText = string.Format("You stole ${0}", (int) PhotonNetwork.LocalPlayer.CustomProperties["money"]);
 
             // Money
@@ -169,7 +170,7 @@ public class GameplayManager : MonoBehaviourPunCallbacks
                 resultInfoText = string.Format("You arrested {0} robber{1}", (int) PhotonNetwork.LocalPlayer.CustomProperties["arrests"], robbers != 1 ? "s" : "");
 
             // Money
-            if (arrested != robbers)
+            if (arrested < robbers)
                 resultMoneyText = string.Format("They were able to steal ${0}", (int) PhotonNetwork.CurrentRoom.CustomProperties["totalmoney"]);
 
             // Time
@@ -340,7 +341,11 @@ public class GameplayManager : MonoBehaviourPunCallbacks
     public override void OnRoomPropertiesUpdate(Hashtable propertiesThatChanged)
     {
         if (PhotonNetwork.IsMasterClient && propertiesThatChanged.ContainsKey("totalmoney"))
+        {
+            Debug.Log(propertiesThatChanged["totalmoney"]);
+            Debug.Log(PhotonNetwork.CurrentRoom.CustomProperties["totalmoney"]);
             CheckIfMatchIsFinished();
+        }
 
         base.OnRoomPropertiesUpdate(propertiesThatChanged);
     }

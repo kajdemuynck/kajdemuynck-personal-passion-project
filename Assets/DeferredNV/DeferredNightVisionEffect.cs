@@ -40,8 +40,8 @@ public class DeferredNightVisionEffect : MonoBehaviour {
 		if (mat)
 		{
 			DestroyImmediate(mat);
-			//mat = null;
-		}
+			mat = null;
+        }
 	}
 
 	private void CreateMaterials()
