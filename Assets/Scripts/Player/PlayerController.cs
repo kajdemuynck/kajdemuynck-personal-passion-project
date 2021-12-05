@@ -40,6 +40,8 @@ public class PlayerController : MonoBehaviourPunCallbacks, IInteractable
     private Button pauseButton;
 
     Rigidbody rb;
+    DeferredNightVisionEffect nv;
+    Light fl;
     public PhotonView pv;
     public PlayerManager pm;
 
@@ -56,6 +58,9 @@ public class PlayerController : MonoBehaviourPunCallbacks, IInteractable
         rb = GetComponent<Rigidbody>();
         pv = GetComponent<PhotonView>();
         pm = PhotonView.Find((int)pv.InstantiationData[0]).GetComponent<PlayerManager>();
+        nv = cameraContainer.GetComponentInChildren<DeferredNightVisionEffect>();
+        nv.enabled = false;
+        fl = cameraContainer.GetComponentInChildren<Light>();
         SetCharacter((string)pv.InstantiationData[1]);
     }
 
@@ -80,6 +85,8 @@ public class PlayerController : MonoBehaviourPunCallbacks, IInteractable
         {
             Destroy(GetComponentInChildren<Camera>().gameObject);
             Destroy(rb);
+            if (pm.role == "robber")
+                Destroy(fl.gameObject);
         }
 
         if (pv.IsMine && Application.isMobilePlatform)
@@ -360,8 +367,16 @@ public class PlayerController : MonoBehaviourPunCallbacks, IInteractable
         pm.Die();
     }
 
-    public void SetCharacter(string role)
+    private void SetCharacter(string role)
     {
+        if (role == "robber")
+        {
+            nv.enabled = true;
+            fl.transform.localPosition = Vector3.zero;
+            fl.intensity = 0.1f;
+            fl.range = 20;
+        }
+
         if (!pv.IsMine)
         {
             GameObject meshPrefab = Resources.Load(string.Format("Characters/PlayerGraphics{0}{1}", char.ToUpper(role[0]), role.Substring(1))) as GameObject;

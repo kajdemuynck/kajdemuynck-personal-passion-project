@@ -9,7 +9,15 @@ public class SpawnManager : MonoBehaviour
 
     private void Awake()
     {
-        Instance = this;
+        if (Instance == null)
+        {
+            Instance = this;
+        }
+        else if (Instance != this)
+        {
+            Destroy(Instance.gameObject);
+            Instance = this;
+        }
         spawnpoints = GetComponentsInChildren<Spawnpoint>();
     }
 
@@ -21,7 +29,7 @@ public class SpawnManager : MonoBehaviour
         return spawnpoint.id;
     }
 
-    public Transform SelectSpawnpointById(int _id)
+    public Transform GetSpawnpointById(int _id)
     {
         Spawnpoint spawnpoint = null;
 

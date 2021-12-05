@@ -37,7 +37,7 @@ public class PlayerManager : MonoBehaviourPunCallbacks
     }
 
     private string[] roles = new string[] { "robber", "agent" };
-    private int[] divisions = new int[] { 0, 1, 0, 1, 0 };
+    private int[] allSpots = new int[] { 0, 1, 0, 1, 0 };
 
     private void Awake()
     {
@@ -98,25 +98,25 @@ public class PlayerManager : MonoBehaviourPunCallbacks
             playerManagersOfPlayers.Add(playerList[i], pm);
         }
 
-        int[] division = new ArraySegment<int>(divisions, 0, playerList.Length).ToArray();
-        List<int> rolesTaken = new List<int>();
+        int[] spots = new ArraySegment<int>(allSpots, 0, playerList.Length).ToArray();
+        List<int> spotsTaken = new List<int>();
         List<int> spawnpointsTaken = new List<int>();
 
         foreach (Player player in playerList)
         {
             //Debug.Log(string.Format("{0}: {1}", player.Key, player.Value.NickName));
-            int randomRole;
-            do randomRole = Random.Range(0, division.Length);
-            while (rolesTaken.Contains(randomRole));
-            rolesTaken.Add(randomRole);
-            string _role = roles[division[randomRole]];
+            int randomSpot;
+            do randomSpot = Random.Range(0, spots.Length);
+            while (spotsTaken.Contains(randomSpot));
+            spotsTaken.Add(randomSpot);
+            string _role = roles[spots[randomSpot]];
 
             int randomSpawnpointId;
             do randomSpawnpointId = SpawnManager.Instance.GetSpawnpointIdByRole(_role);
             while (spawnpointsTaken.Contains(randomSpawnpointId));
             spawnpointsTaken.Add(randomSpawnpointId);
 
-            Debug.Log(string.Format("{0}: {1}", player.NickName, roles[division[randomRole]]));
+            Debug.Log(string.Format("{0}: {1}", player.NickName, roles[spots[randomSpot]]));
 
             playerManagersOfPlayers[player].AssignRole(_role, randomSpawnpointId);
         }
@@ -156,7 +156,7 @@ public class PlayerManager : MonoBehaviourPunCallbacks
             GameplayManager.Instance.startTime = (float) PhotonNetwork.CurrentRoom.CustomProperties["startTime"];
             GameplayManager.Instance.SwitchToMainCamera(false);
 
-            CreateController(SpawnManager.Instance.SelectSpawnpointById(_spawnpointId));
+            CreateController(SpawnManager.Instance.GetSpawnpointById(_spawnpointId));
             GameplayManager.Instance.SwitchToMainCamera(false);
             controller.GetComponent<PlayerController>().cameraContainer.GetComponentInChildren<Camera>().enabled = true;
 
@@ -212,7 +212,7 @@ public class PlayerManager : MonoBehaviourPunCallbacks
         // Die
         PhotonNetwork.Destroy(controller);
         // Respawn
-        CreateController(SpawnManager.Instance.SelectSpawnpointById(SpawnManager.Instance.GetSpawnpointIdByRole(role)));
+        CreateController(SpawnManager.Instance.GetSpawnpointById(SpawnManager.Instance.GetSpawnpointIdByRole(role)));
     }
 
     public override void OnPlayerPropertiesUpdate(Player targetPlayer, Hashtable changedProps)
