@@ -80,7 +80,7 @@ SubShader {
 				#if USE_VIGNETTE
 				//Add vignette
 				float dist = distance(i.texcoord, float2(0.5,0.5));
-				col *= smoothstep(0.8,0.45,dist);
+				col *= smoothstep(0.7,0.5,dist);
 				#endif				
 				
 				//Increase the brightness of all normal areas by a certain amount

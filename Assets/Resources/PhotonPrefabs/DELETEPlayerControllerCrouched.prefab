@@ -116,7 +116,7 @@ GameObject:
   - component: {fileID: 1583396101514163685}
   - component: {fileID: 8595134038832871498}
   m_Layer: 0
-  m_Name: PlayerControllerCrouched
+  m_Name: DELETEPlayerControllerCrouched
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

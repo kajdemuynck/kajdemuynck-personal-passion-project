@@ -59,9 +59,25 @@ public class @PlayerControls : IInputActionCollection, IDisposable
                     ""interactions"": """"
                 },
                 {
-                    ""name"": ""Special"",
+                    ""name"": ""Controls"",
+                    ""type"": ""Button"",
+                    ""id"": ""78ee2270-0cb2-4dfd-aac0-1a415974022f"",
+                    ""expectedControlType"": ""Button"",
+                    ""processors"": """",
+                    ""interactions"": """"
+                },
+                {
+                    ""name"": ""Special01"",
                     ""type"": ""Button"",
                     ""id"": ""d1cbb316-bd7e-4579-94e0-72c1432edd4c"",
+                    ""expectedControlType"": ""Button"",
+                    ""processors"": """",
+                    ""interactions"": ""Tap""
+                },
+                {
+                    ""name"": ""Special02"",
+                    ""type"": ""Button"",
+                    ""id"": ""2ced4a7a-bbf5-4599-af3e-5c91df635bd4"",
                     ""expectedControlType"": ""Button"",
                     ""processors"": """",
                     ""interactions"": ""Tap""
@@ -251,7 +267,7 @@ public class @PlayerControls : IInputActionCollection, IDisposable
                     ""interactions"": """",
                     ""processors"": """",
                     ""groups"": """",
-                    ""action"": ""Special"",
+                    ""action"": ""Special01"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
                 },
@@ -262,7 +278,51 @@ public class @PlayerControls : IInputActionCollection, IDisposable
                     ""interactions"": """",
                     ""processors"": """",
                     ""groups"": """",
-                    ""action"": ""Special"",
+                    ""action"": ""Special01"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""efddf4f6-1147-4284-9950-b01919496118"",
+                    ""path"": ""<Keyboard>/e"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""Special02"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""f73ca294-6959-439c-9724-3711619ce336"",
+                    ""path"": ""<Gamepad>/buttonNorth"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""Special02"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""c1fef443-5496-4978-9815-9368babf3ad0"",
+                    ""path"": ""<Keyboard>/q"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""Controls"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""716beb6e-dffe-48c8-b077-6c927c0236da"",
+                    ""path"": ""<Gamepad>/leftShoulder"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""Controls"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
                 }
@@ -278,7 +338,9 @@ public class @PlayerControls : IInputActionCollection, IDisposable
         m_Actions_Jump = m_Actions.FindAction("Jump", throwIfNotFound: true);
         m_Actions_Interact = m_Actions.FindAction("Interact", throwIfNotFound: true);
         m_Actions_Pause = m_Actions.FindAction("Pause", throwIfNotFound: true);
-        m_Actions_Special = m_Actions.FindAction("Special", throwIfNotFound: true);
+        m_Actions_Controls = m_Actions.FindAction("Controls", throwIfNotFound: true);
+        m_Actions_Special01 = m_Actions.FindAction("Special01", throwIfNotFound: true);
+        m_Actions_Special02 = m_Actions.FindAction("Special02", throwIfNotFound: true);
     }
 
     public void Dispose()
@@ -333,7 +395,9 @@ public class @PlayerControls : IInputActionCollection, IDisposable
     private readonly InputAction m_Actions_Jump;
     private readonly InputAction m_Actions_Interact;
     private readonly InputAction m_Actions_Pause;
-    private readonly InputAction m_Actions_Special;
+    private readonly InputAction m_Actions_Controls;
+    private readonly InputAction m_Actions_Special01;
+    private readonly InputAction m_Actions_Special02;
     public struct ActionsActions
     {
         private @PlayerControls m_Wrapper;
@@ -343,7 +407,9 @@ public class @PlayerControls : IInputActionCollection, IDisposable
         public InputAction @Jump => m_Wrapper.m_Actions_Jump;
         public InputAction @Interact => m_Wrapper.m_Actions_Interact;
         public InputAction @Pause => m_Wrapper.m_Actions_Pause;
-        public InputAction @Special => m_Wrapper.m_Actions_Special;
+        public InputAction @Controls => m_Wrapper.m_Actions_Controls;
+        public InputAction @Special01 => m_Wrapper.m_Actions_Special01;
+        public InputAction @Special02 => m_Wrapper.m_Actions_Special02;
         public InputActionMap Get() { return m_Wrapper.m_Actions; }
         public void Enable() { Get().Enable(); }
         public void Disable() { Get().Disable(); }
@@ -368,9 +434,15 @@ public class @PlayerControls : IInputActionCollection, IDisposable
                 @Pause.started -= m_Wrapper.m_ActionsActionsCallbackInterface.OnPause;
                 @Pause.performed -= m_Wrapper.m_ActionsActionsCallbackInterface.OnPause;
                 @Pause.canceled -= m_Wrapper.m_ActionsActionsCallbackInterface.OnPause;
-                @Special.started -= m_Wrapper.m_ActionsActionsCallbackInterface.OnSpecial;
-                @Special.performed -= m_Wrapper.m_ActionsActionsCallbackInterface.OnSpecial;
-                @Special.canceled -= m_Wrapper.m_ActionsActionsCallbackInterface.OnSpecial;
+                @Controls.started -= m_Wrapper.m_ActionsActionsCallbackInterface.OnControls;
+                @Controls.performed -= m_Wrapper.m_ActionsActionsCallbackInterface.OnControls;
+                @Controls.canceled -= m_Wrapper.m_ActionsActionsCallbackInterface.OnControls;
+                @Special01.started -= m_Wrapper.m_ActionsActionsCallbackInterface.OnSpecial01;
+                @Special01.performed -= m_Wrapper.m_ActionsActionsCallbackInterface.OnSpecial01;
+                @Special01.canceled -= m_Wrapper.m_ActionsActionsCallbackInterface.OnSpecial01;
+                @Special02.started -= m_Wrapper.m_ActionsActionsCallbackInterface.OnSpecial02;
+                @Special02.performed -= m_Wrapper.m_ActionsActionsCallbackInterface.OnSpecial02;
+                @Special02.canceled -= m_Wrapper.m_ActionsActionsCallbackInterface.OnSpecial02;
             }
             m_Wrapper.m_ActionsActionsCallbackInterface = instance;
             if (instance != null)
@@ -390,9 +462,15 @@ public class @PlayerControls : IInputActionCollection, IDisposable
                 @Pause.started += instance.OnPause;
                 @Pause.performed += instance.OnPause;
                 @Pause.canceled += instance.OnPause;
-                @Special.started += instance.OnSpecial;
-                @Special.performed += instance.OnSpecial;
-                @Special.canceled += instance.OnSpecial;
+                @Controls.started += instance.OnControls;
+                @Controls.performed += instance.OnControls;
+                @Controls.canceled += instance.OnControls;
+                @Special01.started += instance.OnSpecial01;
+                @Special01.performed += instance.OnSpecial01;
+                @Special01.canceled += instance.OnSpecial01;
+                @Special02.started += instance.OnSpecial02;
+                @Special02.performed += instance.OnSpecial02;
+                @Special02.canceled += instance.OnSpecial02;
             }
         }
     }
@@ -404,6 +482,8 @@ public class @PlayerControls : IInputActionCollection, IDisposable
         void OnJump(InputAction.CallbackContext context);
         void OnInteract(InputAction.CallbackContext context);
         void OnPause(InputAction.CallbackContext context);
-        void OnSpecial(InputAction.CallbackContext context);
+        void OnControls(InputAction.CallbackContext context);
+        void OnSpecial01(InputAction.CallbackContext context);
+        void OnSpecial02(InputAction.CallbackContext context);
     }
 }

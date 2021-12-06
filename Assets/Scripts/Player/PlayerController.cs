@@ -16,21 +16,24 @@ public class PlayerController : MonoBehaviourPunCallbacks, IInteractable
     private InputAction moveAction;
     private InputAction lookAction;
     private InputAction jumpAction;
-    private InputAction crouchAction;
-    private InputAction checkAction;
+    private InputAction special01Action;
+    private InputAction special02Action;
     private InputAction pauseAction;
     public InputAction interactAction;
 
     public GameObject cameraContainer;
     [SerializeField] GameObject graphicsContainer;
+    [SerializeField] DeferredNightVisionEffect nv;
     [SerializeField] float mouseSensitivity, walkSpeed, sprintSpeed, jumpSpeed, smoothTime;
 
     private float verticalLookRotation;
     private bool grounded;
     private float interactionDistancePlayer = 3f;
     private bool isCrouched = false;
+    private bool isNightVision = true;
     private bool isHolding = false;
     private bool isReleased = true;
+    private bool hasLooked = false;
     Vector3 smoothMoveVelocity;
     Vector3 moveAmount;
 
@@ -44,7 +47,6 @@ public class PlayerController : MonoBehaviourPunCallbacks, IInteractable
 
     Rigidbody rb;
     BoxCollider boxCollider;
-    DeferredNightVisionEffect nv;
     Light fl;
     public PhotonView pv;
     public PlayerManager pm;
@@ -52,22 +54,20 @@ public class PlayerController : MonoBehaviourPunCallbacks, IInteractable
     private void Awake()
     {
         EnhancedTouchSupport.Enable();
+        Debug.Log(nv.name);
         playerInput = GetComponent<PlayerInput>();
         moveAction = playerInput.actions["Move"];
         lookAction = playerInput.actions["Look"];
         jumpAction = playerInput.actions["Jump"];
-        crouchAction = playerInput.actions["Special"];
-        checkAction = crouchAction;
+        special01Action = playerInput.actions["Special01"];
+        special02Action = playerInput.actions["Special02"];
         interactAction = playerInput.actions["Interact"];
         pauseAction = playerInput.actions["Pause"];
-
-        crouchAction.started += ctx => Crouch();
 
         rb = GetComponent<Rigidbody>();
         boxCollider = GetComponent<BoxCollider>();
         pv = GetComponent<PhotonView>();
         pm = PhotonView.Find((int)pv.InstantiationData[0]).GetComponent<PlayerManager>();
-        nv = cameraContainer.GetComponentInChildren<DeferredNightVisionEffect>();
         nv.enabled = false;
         fl = cameraContainer.GetComponentInChildren<Light>();
         SetCharacter((string)pv.InstantiationData[1]);
@@ -107,9 +107,20 @@ public class PlayerController : MonoBehaviourPunCallbacks, IInteractable
         }
     }
 
+    public override void OnEnable()
+    {
+        playerInput.actions.Enable();
+        base.OnEnable();
+    }
+
     public override void OnDisable()
     {
-        crouchAction.started -= ctx => Crouch();
+        if (pv.IsMine && pm.role == "robber")
+        {
+            special01Action.started -= Crouch;
+            special02Action.started -= NightVision;
+        }
+        playerInput.actions.Disable();
         base.OnDisable();
     }
 
@@ -191,12 +202,18 @@ public class PlayerController : MonoBehaviourPunCallbacks, IInteractable
                 vertical = (lookJoystick.Vertical + treshold) * 2;
         }
 
-        transform.Rotate(Vector3.up * horizontal * GameplayManager.Instance.sensitivity);
+        if (hasLooked)
+        {
+            transform.Rotate(Vector3.up * horizontal * GameplayManager.Instance.sensitivity);
 
-        verticalLookRotation += vertical * GameplayManager.Instance.sensitivity;
-        verticalLookRotation = Mathf.Clamp(verticalLookRotation, -90f, 90f);
+            verticalLookRotation += vertical * GameplayManager.Instance.sensitivity;
+            verticalLookRotation = Mathf.Clamp(verticalLookRotation, -90f, 90f);
 
-        cameraContainer.transform.localEulerAngles = Vector3.left * verticalLookRotation;
+            cameraContainer.transform.localEulerAngles = Vector3.left * verticalLookRotation;
+        }
+
+        if (horizontal > 0 || vertical > 0)
+            hasLooked = true;
     }
 
     private void Move()
@@ -237,9 +254,15 @@ public class PlayerController : MonoBehaviourPunCallbacks, IInteractable
         }
     }
 
-    private void Crouch()
+    private void Crouch(InputAction.CallbackContext context)
     {
-        isCrouched = !isCrouched;
+        pv.RPC("RPC_Crouch", RpcTarget.All, !isCrouched);
+    }
+
+    [PunRPC]
+    private void RPC_Crouch(bool _isCrouched)
+    {
+        isCrouched = _isCrouched;
 
         if (!isCrouched)
         {
@@ -252,13 +275,22 @@ public class PlayerController : MonoBehaviourPunCallbacks, IInteractable
         }
         else
         {
-            boxCollider.center = new Vector3(0f, 0.2f, 0.2f);
-            boxCollider.size = new Vector3(1f, 0.4f, 1.5f);
+            boxCollider.center = new Vector3(0f, 0.25f, 0.4f);
+            boxCollider.size = new Vector3(1f, 0.3f, 1f);
+            //boxCollider.size = new Vector3(boxCollider.size.x, boxCollider.size.y / 2f, boxCollider.size.z);
+            //graphicsContainer.transform.localPosition += -transform.up * boxCollider.size.y / 2f;
+            //graphicsContainer.transform.localPosition += -transform.up * (boxCollider.size.y - boxCollider.size.z);
             graphicsContainer.transform.localPosition = new Vector3(0, 0.2f, -0.5f);
             graphicsContainer.transform.localRotation = Quaternion.Euler(90, 0, 0);
             graphicsContainer.transform.localScale = new Vector3(1.2f, 0.8f, 1f);
-            cameraContainer.transform.localPosition = new Vector3(0, 0.2f, 0.85f);
+            cameraContainer.transform.localPosition = new Vector3(0, 0.3f, 0.8f);
         }
+    }
+
+    private void NightVision(InputAction.CallbackContext context)
+    {
+        isNightVision = !isNightVision;
+        nv.enabled = isNightVision;
     }
 
     private void CheckInteraction()
@@ -408,18 +440,22 @@ public class PlayerController : MonoBehaviourPunCallbacks, IInteractable
 
     private void SetCharacter(string role)
     {
-        if (role == "robber")
+        if (!pv.IsMine)
         {
-            nv.enabled = true;
-            fl.transform.localPosition = Vector3.zero;
-            fl.intensity = 0.1f;
-            fl.range = 20;
-        }
-
-        //if (!pv.IsMine)
-        //{
             GameObject meshPrefab = Resources.Load(string.Format("Characters/PlayerGraphics{0}{1}", char.ToUpper(role[0]), role.Substring(1))) as GameObject;
             Instantiate(meshPrefab, graphicsContainer.transform, false);
-        //}
+        }
+        else
+        {
+            if (role == "robber")
+            {
+                special01Action.started += Crouch;
+                special02Action.started += NightVision;
+                nv.enabled = true;
+                fl.transform.localPosition = Vector3.zero;
+                fl.intensity = 0.1f;
+                fl.range = 20;
+            }
+        }
     }
 }

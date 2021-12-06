@@ -46,9 +46,25 @@
                     "interactions": ""
                 },
                 {
-                    "name": "Special",
+                    "name": "Controls",
+                    "type": "Button",
+                    "id": "78ee2270-0cb2-4dfd-aac0-1a415974022f",
+                    "expectedControlType": "Button",
+                    "processors": "",
+                    "interactions": ""
+                },
+                {
+                    "name": "Special01",
                     "type": "Button",
                     "id": "d1cbb316-bd7e-4579-94e0-72c1432edd4c",
+                    "expectedControlType": "Button",
+                    "processors": "",
+                    "interactions": "Tap"
+                },
+                {
+                    "name": "Special02",
+                    "type": "Button",
+                    "id": "2ced4a7a-bbf5-4599-af3e-5c91df635bd4",
                     "expectedControlType": "Button",
                     "processors": "",
                     "interactions": "Tap"
@@ -238,7 +254,7 @@
                     "interactions": "",
                     "processors": "",
                     "groups": "",
-                    "action": "Special",
+                    "action": "Special01",
                     "isComposite": false,
                     "isPartOfComposite": false
                 },
@@ -249,7 +265,51 @@
                     "interactions": "",
                     "processors": "",
                     "groups": "",
-                    "action": "Special",
+                    "action": "Special01",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "efddf4f6-1147-4284-9950-b01919496118",
+                    "path": "<Keyboard>/e",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Special02",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "f73ca294-6959-439c-9724-3711619ce336",
+                    "path": "<Gamepad>/buttonNorth",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Special02",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "c1fef443-5496-4978-9815-9368babf3ad0",
+                    "path": "<Keyboard>/q",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Controls",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "716beb6e-dffe-48c8-b077-6c927c0236da",
+                    "path": "<Gamepad>/leftShoulder",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Controls",
                     "isComposite": false,
                     "isPartOfComposite": false
                 }
