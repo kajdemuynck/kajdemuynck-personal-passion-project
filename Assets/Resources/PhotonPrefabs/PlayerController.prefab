@@ -210,6 +210,10 @@ MonoBehaviour:
       m_Calls: []
     m_ActionId: 7a7611c4-ae97-4525-96e4-59292dcc6ab9
     m_ActionName: Actions/Pause[/Keyboard/escape]
+  - m_PersistentCalls:
+      m_Calls: []
+    m_ActionId: d1cbb316-bd7e-4579-94e0-72c1432edd4c
+    m_ActionName: Actions/Special[/Keyboard/c]
   m_NeverAutoSwitchControlSchemes: 0
   m_DefaultControlScheme: 
   m_DefaultActionMap: Actions

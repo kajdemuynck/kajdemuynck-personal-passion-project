@@ -81,8 +81,8 @@ public class PlayerManager : MonoBehaviourPunCallbacks
         {
             playerList = PhotonNetwork.CurrentRoom.Players.Values.ToArray();
             playerManagers = FindObjectsOfType<PlayerManager>();
-            Debug.Log(string.Format("Players: {0}", playerList.Length));
-            Debug.Log(string.Format("PlayerManagers: {0}", playerManagers.Length));
+            //Debug.Log(string.Format("Players: {0}", playerList.Length));
+            //Debug.Log(string.Format("PlayerManagers: {0}", playerManagers.Length));
 
             yield return null;
         }
@@ -212,10 +212,13 @@ public class PlayerManager : MonoBehaviourPunCallbacks
 
     public void Die()
     {
+        Transform spawnpoint = SpawnManager.Instance.GetSpawnpointById(SpawnManager.Instance.GetSpawnpointIdByRole(role));
+        controller.transform.position = spawnpoint.position;
+        controller.transform.rotation = spawnpoint.rotation;
         // Die
-        PhotonNetwork.Destroy(controller);
+        //PhotonNetwork.Destroy(controller);
         // Respawn
-        CreateController(SpawnManager.Instance.GetSpawnpointById(SpawnManager.Instance.GetSpawnpointIdByRole(role)));
+        //CreateController(SpawnManager.Instance.GetSpawnpointById(SpawnManager.Instance.GetSpawnpointIdByRole(role)));
     }
 
     public override void OnPlayerPropertiesUpdate(Player targetPlayer, Hashtable changedProps)

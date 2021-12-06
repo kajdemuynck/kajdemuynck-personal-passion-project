@@ -329,8 +329,6 @@ public class Launcher : MonoBehaviourPunCallbacks
 
     private void EncodeTextToQRcode(string code)
     {
-        Debug.Log(encodedQRcode.width);
-        Debug.Log(encodedQRcode.height);
         Color32[] convertPixelToTexture = EncodeBarcode(code, encodedQRcode.width, encodedQRcode.height);
         encodedQRcode.SetPixels32(convertPixelToTexture);
         encodedQRcode.Apply();

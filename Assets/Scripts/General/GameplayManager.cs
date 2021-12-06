@@ -41,6 +41,9 @@ public class GameplayManager : MonoBehaviourPunCallbacks
 
     private void Awake()
     {
+        if (!PhotonNetwork.IsConnected)
+            SceneManager.LoadScene(0);
+
         if (Instance == null)
         {
             Instance = this;
@@ -74,8 +77,15 @@ public class GameplayManager : MonoBehaviourPunCallbacks
                 isFinished = true;
 
                 foreach (PlayerManager playerManager in playerManagers)
+                {
                     if (playerManager.role == "robber" && !playerManager.isArrested && !playerManager.hasFinishedSpree)
+                    {
                         isFinished = false;
+                    }
+
+                    if (playerManager.role == null || playerManager.role == "")
+                        isFinished = false;
+                }
 
                 if (isFinished)
                     EndMatch();
@@ -342,8 +352,6 @@ public class GameplayManager : MonoBehaviourPunCallbacks
     {
         if (PhotonNetwork.IsMasterClient && propertiesThatChanged.ContainsKey("totalmoney"))
         {
-            Debug.Log(propertiesThatChanged["totalmoney"]);
-            Debug.Log(PhotonNetwork.CurrentRoom.CustomProperties["totalmoney"]);
             CheckIfMatchIsFinished();
         }
 
