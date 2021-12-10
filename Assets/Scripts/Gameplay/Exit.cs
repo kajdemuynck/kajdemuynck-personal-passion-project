@@ -5,7 +5,7 @@ using UnityEngine;
 public class Exit : MonoBehaviour
 {
     private float timer;
-    private float holdTime = 2f;
+    private float holdTime = 1f;
 
     private void OnTriggerStay(Collider collision)
     {
@@ -13,7 +13,7 @@ public class Exit : MonoBehaviour
         {
             PlayerController pc = collision.gameObject.GetComponent<PlayerController>();
 
-            if (pc.pv.IsMine && !pc.pm.hasFinishedSpree)
+            if (pc.pv.IsMine && pc.pm.role == "robber" && !pc.pm.hasFinishedSpree)
             {
                 timer += Time.deltaTime;
 

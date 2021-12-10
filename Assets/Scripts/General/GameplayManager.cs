@@ -35,7 +35,6 @@ public class GameplayManager : MonoBehaviourPunCallbacks
 
     public float startTime = 0f;
     public int maxTime = 15 * 60;
-    private bool isFinished = false;
     private float endTime = 0f;
     public float sensitivity = 1;
 
@@ -66,31 +65,28 @@ public class GameplayManager : MonoBehaviourPunCallbacks
     //    PhotonNetwork.Instantiate(Path.Combine("PhotonPrefabs", "PlayerManager"), Vector3.zero, Quaternion.identity);
     //}
 
-    public void CheckIfMatchIsFinished()
+    public bool CheckIfMatchIsFinished()
     {
-        if (PhotonNetwork.IsMasterClient)
+        bool isFinished = true;
+
+        PlayerManager[] playerManagers = FindObjectsOfType<PlayerManager>();
+
+        if (PhotonNetwork.CurrentRoom.PlayerCount == playerManagers.Length)
         {
-            PlayerManager[] playerManagers = FindObjectsOfType<PlayerManager>();
-
-            if (PhotonNetwork.CurrentRoom.PlayerCount == playerManagers.Length)
+            foreach (PlayerManager playerManager in playerManagers)
             {
-                isFinished = true;
+                if (playerManager.role == "robber" && !playerManager.isArrested && !playerManager.hasFinishedSpree)
+                    isFinished = false;
 
-                foreach (PlayerManager playerManager in playerManagers)
-                {
-                    if (playerManager.role == "robber" && !playerManager.isArrested && !playerManager.hasFinishedSpree)
-                    {
-                        isFinished = false;
-                    }
-
-                    if (playerManager.role == null || playerManager.role == "")
-                        isFinished = false;
-                }
-
-                if (isFinished)
-                    EndMatch();
+                if (playerManager.role == null || playerManager.role == "")
+                    isFinished = false;
             }
+
+            if (PhotonNetwork.IsMasterClient && isFinished)
+                EndMatch();
         }
+
+        return isFinished;
     }
 
     public void SwitchToMainCamera(bool toCamera)
@@ -156,9 +152,11 @@ public class GameplayManager : MonoBehaviourPunCallbacks
             // Time
             if (endTime <= maxTime)
             {
-                int[] timeArr = GetMinutesAndSeconds(endTime);
+                int[] timeArr = GetMinutesAndSeconds(endTime + 1);
                 if (timeArr[0] > 0)
-                    resultTimeText = string.Format("In {0}{1} minute{2} and {3} second{4}", endTime <= 300 ? "only " : "", timeArr[0], timeArr[0] != 1 ? "s" : "", timeArr[1] + 1, timeArr[1] + 1 != 1 ? "s" : "");
+                    resultTimeText = string.Format("In {0}{1} minute{2} and {3} second{4}", endTime <= 300 ? "only " : "", timeArr[0], timeArr[0] != 1 ? "s" : "", timeArr[1], timeArr[1] != 1 ? "s" : "");
+                else if (timeArr[1] == 0)
+                    resultTimeText = string.Format("In {0}{1} minute{2}", endTime <= 300 ? "only " : "", timeArr[0], timeArr[0] != 1 ? "s" : "");
                 else
                     resultTimeText = string.Format("In only {0} second{1}", timeArr[1] + 1, timeArr[1] + 1 != 1 ? "s" : "");
             }
@@ -186,9 +184,11 @@ public class GameplayManager : MonoBehaviourPunCallbacks
             // Time
             if (endTime <= maxTime)
             {
-                int[] timeArr = GetMinutesAndSeconds(endTime);
+                int[] timeArr = GetMinutesAndSeconds(endTime + 1);
                 if (timeArr[0] > 0)
-                    resultTimeText = string.Format("In {0}{1} minute{2} and {3} second{4}", endTime <= 300 ? "only " : "", timeArr[0], timeArr[0] != 1 ? "s" : "", timeArr[1] + 1, timeArr[1] + 1 != 1 ? "s" : "");
+                    resultTimeText = string.Format("In {0}{1} minute{2} and {3} second{4}", endTime <= 300 ? "only " : "", timeArr[0], timeArr[0] != 1 ? "s" : "", timeArr[1], timeArr[1] != 1 ? "s" : "");
+                else if (timeArr[1] == 0)
+                    resultTimeText = string.Format("In {0}{1} minute{2}", endTime <= 300 ? "only " : "", timeArr[0], timeArr[0] != 1 ? "s" : "");
                 else
                     resultTimeText = string.Format("In only {0} second{1}", timeArr[1] + 1, timeArr[1] + 1 != 1 ? "s" : "");
             }
@@ -216,6 +216,7 @@ public class GameplayManager : MonoBehaviourPunCallbacks
         if (PhotonNetwork.IsMasterClient)
             lobbyButton.SetActive(true);
 
+        pm.DisableCameraBinding();
         PhotonNetwork.Destroy(pc.pv);
         PhotonNetwork.Destroy(pm.pv);
 
@@ -327,6 +328,9 @@ public class GameplayManager : MonoBehaviourPunCallbacks
 
     public void QuitGame()
     {
+        overviewCamera.GetComponent<Camera>().enabled = true;
+        PhotonNetwork.Destroy(pc.pv);
+        PhotonNetwork.Destroy(pm.pv);
         Destroy(RoomManager.Instance.gameObject);
         PhotonNetwork.LeaveRoom();
     }

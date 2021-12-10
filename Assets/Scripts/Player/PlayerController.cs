@@ -8,23 +8,20 @@ using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.EnhancedTouch;
 using Touch = UnityEngine.InputSystem.EnhancedTouch.Touch;
 using Hashtable = ExitGames.Client.Photon.Hashtable;
-using UnityEngine.EventSystems;
 
 public class PlayerController : MonoBehaviourPunCallbacks, IInteractable
 {
     private PlayerInput playerInput;
+    public PlayerControls playerControls;
     private InputAction moveAction;
     private InputAction lookAction;
     private InputAction jumpAction;
-    private InputAction special01Action;
-    private InputAction special02Action;
     private InputAction pauseAction;
     public InputAction interactAction;
 
     public GameObject cameraContainer;
-    [SerializeField] GameObject graphicsContainer;
-    [SerializeField] DeferredNightVisionEffect nv;
-    [SerializeField] float mouseSensitivity, walkSpeed, sprintSpeed, jumpSpeed, smoothTime;
+    public GameObject graphicsContainer;
+    [SerializeField] float walkSpeed, sprintSpeed, jumpSpeed, smoothTime;
 
     private float verticalLookRotation;
     private bool grounded;
@@ -47,20 +44,19 @@ public class PlayerController : MonoBehaviourPunCallbacks, IInteractable
 
     Rigidbody rb;
     BoxCollider boxCollider;
-    Light fl;
+    public Light fl;
+    public DeferredNightVisionEffect nv;
     public PhotonView pv;
     public PlayerManager pm;
 
     private void Awake()
     {
         EnhancedTouchSupport.Enable();
-        Debug.Log(nv.name);
         playerInput = GetComponent<PlayerInput>();
+        playerControls = new PlayerControls();
         moveAction = playerInput.actions["Move"];
         lookAction = playerInput.actions["Look"];
         jumpAction = playerInput.actions["Jump"];
-        special01Action = playerInput.actions["Special01"];
-        special02Action = playerInput.actions["Special02"];
         interactAction = playerInput.actions["Interact"];
         pauseAction = playerInput.actions["Pause"];
 
@@ -68,6 +64,7 @@ public class PlayerController : MonoBehaviourPunCallbacks, IInteractable
         boxCollider = GetComponent<BoxCollider>();
         pv = GetComponent<PhotonView>();
         pm = PhotonView.Find((int)pv.InstantiationData[0]).GetComponent<PlayerManager>();
+        nv = cameraContainer.GetComponentInChildren<DeferredNightVisionEffect>();
         nv.enabled = false;
         fl = cameraContainer.GetComponentInChildren<Light>();
         SetCharacter((string)pv.InstantiationData[1]);
@@ -79,8 +76,6 @@ public class PlayerController : MonoBehaviourPunCallbacks, IInteractable
 
         if (!Application.isMobilePlatform)
             Cursor.lockState = CursorLockMode.Locked;
-        else
-            mouseSensitivity /= 2;
 
         if (pv.IsMine)
         {
@@ -92,10 +87,8 @@ public class PlayerController : MonoBehaviourPunCallbacks, IInteractable
         }
         else
         {
-            Destroy(GetComponentInChildren<Camera>().gameObject);
+            //Destroy(GetComponentInChildren<Camera>().gameObject);
             Destroy(rb);
-            if (pm.role == "robber")
-                Destroy(fl.gameObject);
         }
 
         if (pv.IsMine && Application.isMobilePlatform)
@@ -109,19 +102,26 @@ public class PlayerController : MonoBehaviourPunCallbacks, IInteractable
 
     public override void OnEnable()
     {
-        playerInput.actions.Enable();
+        //playerInput.actions.Enable();
+        playerControls.Enable();
         base.OnEnable();
     }
 
     public override void OnDisable()
     {
+        Destroy(nv);
+        playerControls.Disable();
+        DisableControls();
+        base.OnDisable();
+    }
+
+    public void DisableControls()
+    {
         if (pv.IsMine && pm.role == "robber")
         {
-            special01Action.started -= Crouch;
-            special02Action.started -= NightVision;
+            playerControls.Actions.Special01.started -= Crouch;
+            playerControls.Actions.Special02.started -= NightVision;
         }
-        playerInput.actions.Disable();
-        base.OnDisable();
     }
 
     private void Update()
@@ -141,16 +141,14 @@ public class PlayerController : MonoBehaviourPunCallbacks, IInteractable
         if (pauseAction.ReadValue<float>() > 0)
             PauseGame();
 
+        if (pm.hasFinishedSpree)
+            return;
+
         // Respawn (die) when falling of the map
         if (transform.position.y < -10f)
             Die();
 
         Look();
-
-        if (pm.hasFinishedSpree)
-            return;
-
-        CheckInteraction();
 
         if (pm.isArrested && pm.role == "robber")
         {
@@ -158,6 +156,7 @@ public class PlayerController : MonoBehaviourPunCallbacks, IInteractable
             return;
         }
 
+        CheckInteraction();
         Move();
         Jump();
     }
@@ -373,7 +372,7 @@ public class PlayerController : MonoBehaviourPunCallbacks, IInteractable
         }
     }
 
-    protected bool CheckIsLookingAtObject()
+    private bool CheckIsLookingAtObject()
     {
         if (Camera.main != null)
         {
@@ -440,22 +439,33 @@ public class PlayerController : MonoBehaviourPunCallbacks, IInteractable
 
     private void SetCharacter(string role)
     {
+        if (role == "robber")
+        {
+            fl.transform.localPosition = Vector3.zero;
+            fl.intensity = 0.1f;
+            fl.range = 20;
+
+            nv.enabled = pv.IsMine;
+            fl.enabled = pv.IsMine;
+
+            if (pv.IsMine)
+            {
+                playerControls.Actions.Special01.started += Crouch;
+                playerControls.Actions.Special02.started += NightVision;
+            }
+        }
+        else
+        {
+            Destroy(nv);
+        }
+
         if (!pv.IsMine)
         {
             GameObject meshPrefab = Resources.Load(string.Format("Characters/PlayerGraphics{0}{1}", char.ToUpper(role[0]), role.Substring(1))) as GameObject;
             Instantiate(meshPrefab, graphicsContainer.transform, false);
         }
-        else
-        {
-            if (role == "robber")
-            {
-                special01Action.started += Crouch;
-                special02Action.started += NightVision;
-                nv.enabled = true;
-                fl.transform.localPosition = Vector3.zero;
-                fl.intensity = 0.1f;
-                fl.range = 20;
-            }
-        }
+
+        cameraContainer.GetComponentInChildren<Camera>().enabled = pv.IsMine;
+        cameraContainer.GetComponentInChildren<AudioListener>().enabled = pv.IsMine;
     }
 }

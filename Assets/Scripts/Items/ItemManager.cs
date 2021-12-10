@@ -9,7 +9,6 @@ public class ItemManager : MonoBehaviour
     public static ItemManager Instance;
 
     PhotonView pv;
-    PlayerManager pm;
 
     private List<ItemPickup> itemsPickup;
     private List<ItemPickupMoney> itemsPickupMoney;
@@ -43,32 +42,6 @@ public class ItemManager : MonoBehaviour
 
         PhotonNetwork.IsMessageQueueRunning = true;
     }
-
-    public void SetPlayerManager(int pvid)
-    {
-        pm = PhotonView.Find(pvid).GetComponent<PlayerManager>();
-    }
-
-    //public bool CheckInteraction(RaycastHit hit)
-    //{
-    //    bool isLookingAtItem = false;
-
-    //    foreach (ItemPickup item in itemsPickup)
-    //    {
-    //        if (!(hit.collider.gameObject.GetComponent<ItemPickupMoney>() && pm.role == "agent"))
-    //        {
-    //            if (hit.collider.gameObject == item.gameObject && !item.isPickedUp && hit.distance <= item.interactionDistance)
-    //            {
-    //                isLookingAtItem = true;
-    //                HUD.Instance.ShowDescription(item.description);
-    //                item.CheckInteraction();
-    //                break;
-    //            }
-    //        }
-    //    }
-
-    //    return isLookingAtItem;
-    //}
 
     private void SortList()
     {
@@ -109,9 +82,6 @@ public class ItemManager : MonoBehaviour
     [PunRPC]
     private void RPC_RemoveItem(int index)
     {
-        //if (!pv.IsMine)
-        //    return;
-
         GameObject item = itemsPickup[index].gameObject;
         item.GetComponent<ItemPickup>().isPickedUp = true;
         itemsPickup.Remove(item.GetComponent<ItemPickup>());

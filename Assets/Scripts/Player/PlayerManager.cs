@@ -8,11 +8,14 @@ using System.Linq;
 using System;
 using Random = UnityEngine.Random;
 using Hashtable = ExitGames.Client.Photon.Hashtable;
+using UnityEngine.InputSystem;
 
 public class PlayerManager : MonoBehaviourPunCallbacks
 {
     public PhotonView pv;
     public GameObject controller;
+    public PlayerController activePlayerController;
+    private PlayerController[] playerControllers;
 
     public string role;
     private bool hasAssigned = false;
@@ -37,7 +40,7 @@ public class PlayerManager : MonoBehaviourPunCallbacks
     }
 
     private string[] roles = new string[] { "robber", "agent" };
-    private int[] allSpots = new int[] { 0, 1, 0, 1, 0 };
+    private int[] allSpots = new int[] { 0, 0, 0, 1, 0 };
 
     private void Awake()
     {
@@ -49,7 +52,6 @@ public class PlayerManager : MonoBehaviourPunCallbacks
         if (pv.IsMine)
         {
             GameplayManager.Instance.SetPlayerManager(pv.ViewID);
-            ItemManager.Instance.SetPlayerManager(pv.ViewID);
 
             if (PhotonNetwork.IsMasterClient)
             {
@@ -138,6 +140,7 @@ public class PlayerManager : MonoBehaviourPunCallbacks
         }
         PhotonNetwork.LocalPlayer.SetCustomProperties(hash);
         controller = PhotonNetwork.Instantiate(Path.Combine("PhotonPrefabs", "PlayerController"), spawnpoint.position, spawnpoint.rotation, 0, new object[] { pv.ViewID, role });
+        activePlayerController = controller.GetComponent<PlayerController>();
     }
 
     public void AssignRole(string _role, int _spawnpointId)
@@ -182,7 +185,11 @@ public class PlayerManager : MonoBehaviourPunCallbacks
     private void RPC_SetArrested(bool _isArrested)
     {
         isArrested = _isArrested;
-        GameplayManager.Instance.CheckIfMatchIsFinished();
+
+        if (PhotonNetwork.IsMasterClient)
+        {
+            GameplayManager.Instance.CheckIfMatchIsFinished();
+        }
     }
 
     public void FinishSpree()
@@ -194,6 +201,7 @@ public class PlayerManager : MonoBehaviourPunCallbacks
     private void RPC_FinishSpree()
     {
         hasFinishedSpree = true;
+        controller.GetComponent<PlayerController>().graphicsContainer.SetActive(false);
 
         if (pv.IsMine)
         {
@@ -204,10 +212,59 @@ public class PlayerManager : MonoBehaviourPunCallbacks
             Hashtable hash = new Hashtable();
             hash.Add("totalmoney", totalMoney);
             PhotonNetwork.CurrentRoom.SetCustomProperties(hash);
+
+            if (!GameplayManager.Instance.CheckIfMatchIsFinished())
+            {
+                controller.GetComponent<PlayerController>().DisableControls();
+                playerControllers = FindObjectsOfType<PlayerController>();
+                controller.GetComponent<PlayerController>().playerControls.Actions.Special01.started += SwitchCameraBinding;
+                controller.GetComponent<PlayerController>().playerControls.Actions.Special02.started += SwitchNightVision;
+                SwitchCamera();
+            }
         }
 
         //Debug.Log(string.Format("Total money collected: {0}", totalMoney));
         //GameplayManager.Instance.CheckIfMatchIsFinished();
+    }
+
+    private void SwitchCameraBinding(InputAction.CallbackContext context)
+    {
+        SwitchCamera();
+    }
+
+    public void DisableCameraBinding()
+    {
+        if (activePlayerController != controller.GetComponent<PlayerController>())
+        {
+            controller.GetComponent<PlayerController>().playerControls.Actions.Special01.started -= SwitchCameraBinding;
+            controller.GetComponent<PlayerController>().playerControls.Actions.Special02.started -= SwitchNightVision;
+        }
+    }
+
+    private void SwitchCamera()
+    {
+        activePlayerController.cameraContainer.GetComponentInChildren<Camera>().enabled = false;
+        activePlayerController.cameraContainer.GetComponentInChildren<AudioListener>().enabled = false;
+        activePlayerController.fl.enabled = false;
+        bool isNightVision = activePlayerController.nv.enabled;
+
+        do
+        {
+            int index = Array.IndexOf(playerControllers, activePlayerController) + 1;
+            index %= playerControllers.Length;
+            activePlayerController = playerControllers[index];
+        }
+        while (activePlayerController == GameplayManager.Instance.pc || activePlayerController.pm.role != "robber" || activePlayerController.pm.hasFinishedSpree);
+
+        activePlayerController.cameraContainer.GetComponentInChildren<Camera>().enabled = true;
+        activePlayerController.cameraContainer.GetComponentInChildren<AudioListener>().enabled = true;
+        activePlayerController.fl.enabled = true;
+        activePlayerController.nv.enabled = isNightVision;
+    }
+
+    private void SwitchNightVision(InputAction.CallbackContext context)
+    {
+        activePlayerController.nv.enabled = !activePlayerController.nv.enabled;
     }
 
     public void Die()

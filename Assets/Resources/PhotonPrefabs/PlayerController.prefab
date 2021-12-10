@@ -154,8 +154,6 @@ MonoBehaviour:
     m_SingletonActionBindings: []
   cameraContainer: {fileID: 8595134039166920301}
   graphicsContainer: {fileID: 8595134039171412789}
-  nv: {fileID: 835528684554752595}
-  mouseSensitivity: 1
   walkSpeed: 3
   sprintSpeed: 6
   jumpSpeed: 8
@@ -163,6 +161,8 @@ MonoBehaviour:
   EnvironmentLayer:
     serializedVersion: 2
     m_Bits: 64
+  fl: {fileID: 0}
+  nv: {fileID: 0}
   pv: {fileID: 0}
   pm: {fileID: 0}
 --- !u!114 &2445586192367238685
@@ -305,8 +305,8 @@ GameObject:
   m_Component:
   - component: {fileID: 8595134038961806089}
   - component: {fileID: 8595134038961806090}
-  - component: {fileID: 835528684554752595}
   - component: {fileID: 8595134038961806091}
+  - component: {fileID: 6763903591774069473}
   m_Layer: 0
   m_Name: PlayerCamera
   m_TagString: MainCamera
@@ -371,7 +371,15 @@ Camera:
   m_OcclusionCulling: 1
   m_StereoConvergence: 10
   m_StereoSeparation: 0.022
---- !u!114 &835528684554752595
+--- !u!81 &8595134038961806091
+AudioListener:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8595134038961806092}
+  m_Enabled: 1
+--- !u!114 &6763903591774069473
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -388,14 +396,6 @@ MonoBehaviour:
   m_baseLightingContribution: 0.0025
   m_LightSensitivityMultiplier: 10
   useVignetting: 1
---- !u!81 &8595134038961806091
-AudioListener:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8595134038961806092}
-  m_Enabled: 1
 --- !u!1 &8595134039166920301
 GameObject:
   m_ObjectHideFlags: 0

@@ -9,6 +9,11 @@ public class ItemPickupMoney : ItemPickup
 {
     private int value;
 
+    private void Start()
+    {
+        type = "money";
+    }
+
     public override void Interact(RaycastHit hit, bool isInteracting)
     {
         if (isInteracting)

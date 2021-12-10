@@ -68,6 +68,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   pv: {fileID: 0}
   controller: {fileID: 0}
+  activePlayerController: {fileID: 0}
   role: 
   isArrested: 0
   hasFinishedSpree: 0

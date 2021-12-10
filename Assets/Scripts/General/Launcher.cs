@@ -201,7 +201,7 @@ public class Launcher : MonoBehaviourPunCallbacks
             publicToggle.isOn = PhotonNetwork.CurrentRoom.IsVisible;
         }
 
-        startGameButton.SetActive(PhotonNetwork.IsMasterClient);
+        startGameButton.SetActive(PhotonNetwork.IsMasterClient);// && PhotonNetwork.CurrentRoom.PlayerCount > 1);
     }
 
     public override void OnPlayerEnteredRoom(Player newPlayer)
@@ -227,7 +227,7 @@ public class Launcher : MonoBehaviourPunCallbacks
 
     public override void OnMasterClientSwitched(Player newMasterClient)
     {
-        startGameButton.SetActive(PhotonNetwork.IsMasterClient);
+        startGameButton.SetActive(PhotonNetwork.IsMasterClient);// && PhotonNetwork.CurrentRoom.PlayerCount > 1);
         publicToggle.interactable = true;
         publicToggle.transform.GetChild(0).gameObject.SetActive(true);
     }
