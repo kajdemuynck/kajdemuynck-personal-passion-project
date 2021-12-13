@@ -20,21 +20,19 @@ public class ItemPickup : MonoBehaviourPunCallbacks, IInteractable
         //TouchControls.Instance.grabButton.onClick.AddListener(TakeItem);
     }
 
-    public virtual void Interact(RaycastHit hit, bool isInteracting)
+    public virtual bool Interact(RaycastHit hit, bool isInteracting)
     {
         if (hit.distance <= interactionDistance)
         {
             GameplayManager.Instance.ShowDescription(description);
-            TouchControls.Instance.grabButton.gameObject.SetActive(true);
 
-            if (isInteracting)// && EventSystem.current.currentSelectedGameObject.name == TouchControls.Instance.grabButton.gameObject.name)
+            if (isInteracting)
                 TakeItem();
+
+            return true;
         }
         else
-        {
-            GameplayManager.Instance.HideDescription();
-            TouchControls.Instance.grabButton.gameObject.SetActive(false);
-        }
+            return false;
     }
 
     private void TakeItem()

@@ -9,8 +9,14 @@ public class TouchControls : MonoBehaviour
 
     public Joystick MoveJoystick;
     public Joystick LookJoystick;
-    public Button grabButton;
+    public Button interactButton;
+    public Button crouchButton;
+    public Button nightvisionButton;
     public Button pauseButton;
+    [SerializeField] Sprite crouchOffSprite;
+    [SerializeField] Sprite crouchOnSprite;
+    [SerializeField] Sprite nvOffSprite;
+    [SerializeField] Sprite nvOnSprite;
 
     private void Awake()
     {
@@ -29,6 +35,22 @@ public class TouchControls : MonoBehaviour
     {
         MoveJoystick.gameObject.SetActive(true);
         LookJoystick.gameObject.SetActive(true);
-        grabButton.gameObject.SetActive(true);
+        interactButton.gameObject.SetActive(true);
+    }
+
+    public void CrouchButtonToggle(bool state)
+    {
+        if (state)
+            crouchButton.GetComponent<Image>().sprite = crouchOnSprite;
+        else
+            crouchButton.GetComponent<Image>().sprite = crouchOffSprite;
+    }
+
+    public void NightVisionButtonToggle(bool state)
+    {
+        if (state)
+            nightvisionButton.GetComponent<Image>().sprite = nvOnSprite;
+        else
+            nightvisionButton.GetComponent<Image>().sprite = nvOffSprite;
     }
 }

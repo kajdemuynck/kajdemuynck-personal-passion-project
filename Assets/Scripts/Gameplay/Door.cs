@@ -36,7 +36,7 @@ public class Door : MonoBehaviour, IInteractable
             return false;
     }
 
-    public void Interact(RaycastHit hit, bool isInteracting)
+    public bool Interact(RaycastHit hit, bool isInteracting)
     {
         if (hit.distance <= interactionDistance && !isPlaying(isOpen ? "DoorOpen" : "DoorClose"))
         {
@@ -105,7 +105,11 @@ public class Door : MonoBehaviour, IInteractable
                     }
                 }
             }
+
+            return true;
         }
+        else
+            return false;
     }
 
     public void SyncDoor(bool _isOpen)

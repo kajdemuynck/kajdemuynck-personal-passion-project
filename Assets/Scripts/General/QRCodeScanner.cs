@@ -14,7 +14,6 @@ public class QRCodeScanner : MonoBehaviour
     private bool isCameraAvailable = false;
     private WebCamTexture cameraTexture;
     private BarcodeReader barcodeReader;
-    private string code;
     private bool isScanning = false;
     private float time = 1f;
     private float timer = 0;
@@ -35,7 +34,7 @@ public class QRCodeScanner : MonoBehaviour
 
         if (timer >= time && !isScanning)
         {
-            StartCoroutine("ScanInterval");
+            StartCoroutine(ScanInterval());
             isScanning = true;
         }
     }
@@ -64,7 +63,6 @@ public class QRCodeScanner : MonoBehaviour
     private void OnDisable()
     {
         timer = 0;
-        code = "";
         if (cameraTexture != null && cameraTexture.isPlaying)
             cameraTexture.Stop();
         joinRoomButton.gameObject.SetActive(false);
@@ -100,7 +98,7 @@ public class QRCodeScanner : MonoBehaviour
         }
     }
 
-    public void JoinRoom()
+    public void JoinRoom(string code)
     {
         Launcher.Instance.JoinRoom(code);
         StopCoroutine("ScanInterval");
@@ -114,12 +112,12 @@ public class QRCodeScanner : MonoBehaviour
             {
                 Color32LuminanceSource colLumSource = new Color32LuminanceSource(cameraTexture.GetPixels32(), cameraTexture.width, cameraTexture.height);
                 Result result = barcodeReader.Decode(colLumSource);
-                if (result != null)
+                if (result != null && result.Text.Length == 4)
                 {
-                    code = result.Text;
-                    joinRoomButton.gameObject.GetComponentInChildren<TMP_Text>().text = string.Format("Join room {0}", code);
-                    joinRoomButton.gameObject.SetActive(true);
-                    joinRoomButton.Select();
+                    JoinRoom(result.Text);
+                    //joinRoomButton.gameObject.GetComponentInChildren<TMP_Text>().text = string.Format("Join room {0}", code);
+                    //joinRoomButton.gameObject.SetActive(true);
+                    //joinRoomButton.Select();
                 }
             }
             catch (System.Exception ex)
@@ -133,7 +131,7 @@ public class QRCodeScanner : MonoBehaviour
     {
         while (true)
         {
-            if (!gameObject.activeSelf)
+            if (gameObject.activeSelf)
                 Scan();
 
             yield return new WaitForSeconds(1f);

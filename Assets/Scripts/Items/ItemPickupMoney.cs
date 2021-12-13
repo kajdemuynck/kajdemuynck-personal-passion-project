@@ -14,12 +14,17 @@ public class ItemPickupMoney : ItemPickup
         type = "money";
     }
 
-    public override void Interact(RaycastHit hit, bool isInteracting)
+    public override bool Interact(RaycastHit hit, bool isInteracting)
     {
-        if (isInteracting)
-            CollectMoney();
+        if (base.Interact(hit, isInteracting))
+        {
+            if (isInteracting)
+                CollectMoney();
 
-        base.Interact(hit, isInteracting);
+            return true;
+        }
+        else
+            return false;
     }
 
     public void CollectMoney()

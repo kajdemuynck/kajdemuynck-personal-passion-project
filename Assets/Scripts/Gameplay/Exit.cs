@@ -13,12 +13,12 @@ public class Exit : MonoBehaviour
         {
             PlayerController pc = collision.gameObject.GetComponent<PlayerController>();
 
-            if (pc.pv.IsMine && pc.pm.role == "robber" && !pc.pm.hasFinishedSpree)
+            if (pc.pv.IsMine && pc.pm.role == "robber" && !pc.pm.hasEscaped)
             {
                 timer += Time.deltaTime;
 
                 if (timer >= holdTime)
-                    pc.pm.FinishSpree();
+                    pc.pm.Escape();
             }
         }
     }
@@ -29,7 +29,7 @@ public class Exit : MonoBehaviour
         {
             PlayerController pc = collision.gameObject.GetComponent<PlayerController>();
 
-            if (pc.pv.IsMine && !pc.pm.hasFinishedSpree)
+            if (pc.pv.IsMine && !pc.pm.hasEscaped)
                 timer = 0;
         }
     }

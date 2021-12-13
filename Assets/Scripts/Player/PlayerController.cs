@@ -15,21 +15,15 @@ public class PlayerController : MonoBehaviourPunCallbacks, IInteractable
     public PlayerControls playerControls;
     private InputAction moveAction;
     private InputAction lookAction;
-    private InputAction jumpAction;
-    private InputAction pauseAction;
-    public InputAction interactAction;
 
     public GameObject cameraContainer;
     public GameObject graphicsContainer;
-    [SerializeField] float walkSpeed, sprintSpeed, jumpSpeed, smoothTime;
+    [SerializeField] float walkSpeed, sprintSpeed, smoothTime;
 
     private float verticalLookRotation;
-    private bool grounded;
     private float interactionDistancePlayer = 3f;
     private bool isCrouched = false;
     private bool isNightVision = true;
-    private bool isHolding = false;
-    private bool isReleased = true;
     private bool hasLooked = false;
     Vector3 smoothMoveVelocity;
     Vector3 moveAmount;
@@ -40,7 +34,6 @@ public class PlayerController : MonoBehaviourPunCallbacks, IInteractable
 
     private Joystick moveJoystick;
     private Joystick lookJoystick;
-    private Button pauseButton;
 
     Rigidbody rb;
     BoxCollider boxCollider;
@@ -56,9 +49,6 @@ public class PlayerController : MonoBehaviourPunCallbacks, IInteractable
         playerControls = new PlayerControls();
         moveAction = playerInput.actions["Move"];
         lookAction = playerInput.actions["Look"];
-        jumpAction = playerInput.actions["Jump"];
-        interactAction = playerInput.actions["Interact"];
-        pauseAction = playerInput.actions["Pause"];
 
         rb = GetComponent<Rigidbody>();
         boxCollider = GetComponent<BoxCollider>();
@@ -84,19 +74,21 @@ public class PlayerController : MonoBehaviourPunCallbacks, IInteractable
             hash.Add("money", 0);
             PhotonNetwork.LocalPlayer.SetCustomProperties(hash);
             GameplayManager.Instance.SetPlayerController(pv.ViewID);
+            playerControls.Actions.Interact.started += OnInteractInput;
+            playerControls.Actions.Pause.started += PauseGameInput;
+
+            if (Application.isMobilePlatform)
+            {
+                moveJoystick = TouchControls.Instance.MoveJoystick;
+                lookJoystick = TouchControls.Instance.LookJoystick;
+                TouchControls.Instance.interactButton.onClick.AddListener(OnInteractButton);
+                TouchControls.Instance.pauseButton.onClick.AddListener(PauseGame);
+                Touch.onFingerUp += OnInteractTouch;
+            }
         }
         else
         {
-            //Destroy(GetComponentInChildren<Camera>().gameObject);
             Destroy(rb);
-        }
-
-        if (pv.IsMine && Application.isMobilePlatform)
-        {
-            moveJoystick = TouchControls.Instance.MoveJoystick;
-            lookJoystick = TouchControls.Instance.LookJoystick;
-            pauseButton = TouchControls.Instance.pauseButton;
-            pauseButton.onClick.AddListener(PauseGame);
         }
     }
 
@@ -117,10 +109,31 @@ public class PlayerController : MonoBehaviourPunCallbacks, IInteractable
 
     public void DisableControls()
     {
-        if (pv.IsMine && pm.role == "robber")
+        if (pv.IsMine)
         {
-            playerControls.Actions.Special01.started -= Crouch;
-            playerControls.Actions.Special02.started -= NightVision;
+            playerControls.Actions.Interact.started -= OnInteractInput;
+            playerControls.Actions.Pause.started -= PauseGameInput;
+
+            if (Application.isMobilePlatform)
+            {
+                TouchControls.Instance.interactButton.onClick.RemoveListener(OnInteractButton);
+                TouchControls.Instance.pauseButton.onClick.RemoveListener(PauseGame);
+                Touch.onFingerUp -= OnInteractTouch;
+
+                if (pm.role == "robber")
+                {
+                    TouchControls.Instance.crouchButton.onClick.RemoveListener(Crouch);
+                    TouchControls.Instance.nightvisionButton.onClick.RemoveListener(NightVision);
+                }
+            }
+            else
+            {
+                if (pm.role == "robber")
+                {
+                    playerControls.Actions.Special01.started -= CrouchInput;
+                    playerControls.Actions.Special02.started -= NightVisionInput;
+                }
+            }
         }
     }
 
@@ -135,13 +148,7 @@ public class PlayerController : MonoBehaviourPunCallbacks, IInteractable
 
         GameplayManager.Instance.SetTime(GameplayManager.Instance.maxTime - pastTime);
 
-        if (pm.IsPaused)
-            return;
-
-        if (pauseAction.ReadValue<float>() > 0)
-            PauseGame();
-
-        if (pm.hasFinishedSpree)
+        if (pm.IsPaused || pm.hasEscaped)
             return;
 
         // Respawn (die) when falling of the map
@@ -156,9 +163,8 @@ public class PlayerController : MonoBehaviourPunCallbacks, IInteractable
             return;
         }
 
-        CheckInteraction();
         Move();
-        Jump();
+        CheckInteraction();
     }
 
     private void FixedUpdate()
@@ -167,6 +173,11 @@ public class PlayerController : MonoBehaviourPunCallbacks, IInteractable
             return;
 
         rb.MovePosition(rb.position + transform.TransformDirection(moveAmount) * Time.fixedDeltaTime);
+    }
+
+    private void PauseGameInput(InputAction.CallbackContext context)
+    {
+        PauseGame();
     }
 
     private void PauseGame()
@@ -211,7 +222,7 @@ public class PlayerController : MonoBehaviourPunCallbacks, IInteractable
             cameraContainer.transform.localEulerAngles = Vector3.left * verticalLookRotation;
         }
 
-        if (horizontal > 0 || vertical > 0)
+        if (!hasLooked && (horizontal != 0 || vertical != 0))
             hasLooked = true;
     }
 
@@ -244,16 +255,12 @@ public class PlayerController : MonoBehaviourPunCallbacks, IInteractable
         moveAmount = Vector3.SmoothDamp(moveAmount, moveDir * /*Input.GetKey(KeyCode.LeftShift) ? sprintSpeed :*/ walkSpeed, ref smoothMoveVelocity, smoothTime);
     }
 
-    private void Jump()
+    private void CrouchInput(InputAction.CallbackContext context)
     {
-        if (jumpAction.ReadValue<float>() > 0 && grounded)
-        {
-            rb.AddForce(transform.up * jumpSpeed * 25);
-            grounded = false;
-        }
+        Crouch();
     }
 
-    private void Crouch(InputAction.CallbackContext context)
+    private void Crouch()
     {
         pv.RPC("RPC_Crouch", RpcTarget.All, !isCrouched);
     }
@@ -262,6 +269,8 @@ public class PlayerController : MonoBehaviourPunCallbacks, IInteractable
     private void RPC_Crouch(bool _isCrouched)
     {
         isCrouched = _isCrouched;
+        if (Application.isMobilePlatform)
+            TouchControls.Instance.CrouchButtonToggle(isCrouched);
 
         if (!isCrouched)
         {
@@ -274,66 +283,83 @@ public class PlayerController : MonoBehaviourPunCallbacks, IInteractable
         }
         else
         {
-            boxCollider.center = new Vector3(0f, 0.25f, 0.4f);
-            boxCollider.size = new Vector3(1f, 0.3f, 1f);
+            //boxCollider.center = new Vector3(0f, 0.25f, 0.4f);
+            //boxCollider.size = new Vector3(1f, 0.3f, 1f);
+            boxCollider.center = new Vector3(0f, 0.25f, 0f);
+            boxCollider.size = new Vector3(1.1f, 0.3f, 1.1f);
             //boxCollider.size = new Vector3(boxCollider.size.x, boxCollider.size.y / 2f, boxCollider.size.z);
             //graphicsContainer.transform.localPosition += -transform.up * boxCollider.size.y / 2f;
             //graphicsContainer.transform.localPosition += -transform.up * (boxCollider.size.y - boxCollider.size.z);
-            graphicsContainer.transform.localPosition = new Vector3(0, 0.2f, -0.5f);
+            //graphicsContainer.transform.localPosition = new Vector3(0, 0.2f, -0.5f);
+            graphicsContainer.transform.localPosition = new Vector3(0, 0.2f, -1f);
             graphicsContainer.transform.localRotation = Quaternion.Euler(90, 0, 0);
-            graphicsContainer.transform.localScale = new Vector3(1.2f, 0.8f, 1f);
-            cameraContainer.transform.localPosition = new Vector3(0, 0.3f, 0.8f);
+            graphicsContainer.transform.localScale = new Vector3(1.1f, 0.9f, 1f);
+            //cameraContainer.transform.localPosition = new Vector3(0, 0.3f, 0.8f);
+            cameraContainer.transform.localPosition = new Vector3(0, 0.3f, 0.4f);
         }
     }
 
-    private void NightVision(InputAction.CallbackContext context)
+    private void NightVisionInput(InputAction.CallbackContext context)
+    {
+        NightVision();
+    }
+
+    private void NightVision()
     {
         isNightVision = !isNightVision;
         nv.enabled = isNightVision;
+        if (Application.isMobilePlatform)
+            TouchControls.Instance.NightVisionButtonToggle(isNightVision);
     }
 
-    private void CheckInteraction()
+    private void CheckInteraction(bool isInteracting = false)
     {
-        bool isLooking = CheckIsLookingAtObject();
+        GameplayManager.Instance.HideDescription();
+        TouchControls.Instance.interactButton.gameObject.SetActive(false);
 
-        if (isLooking)
+        if (Camera.main != null)
         {
-            bool isInteracting = CheckIsInteractingWithObject(raycasthit);
-            if (TouchControls.Instance.grabButton.gameObject.GetComponent<ButtonActions>().isPressed)
-                isInteracting = true;
-            TouchControls.Instance.grabButton.gameObject.GetComponent<ButtonActions>().isPressed = false;
-
-            GameObject checkingObj = raycasthit.collider.gameObject;
-            GameObject interactableObj = checkingObj.GetComponent<IInteractable>() != null ? checkingObj : null;
-
-            while (interactableObj == null && checkingObj.transform.parent != null)
+            Ray ray = Camera.main.ViewportPointToRay(new Vector3(0.5f, 0.5f));
+            ray.origin = Camera.main.transform.position;
+            if (Physics.Raycast(ray, out raycasthit, 10f, ~EnvironmentLayer))
             {
-                checkingObj = checkingObj.transform.parent.gameObject;
-                if (checkingObj.GetComponent<IInteractable>() != null)
-                    interactableObj = checkingObj;
-            }
+                GameObject obj = raycasthit.collider.gameObject;
+                while (obj.GetComponent<IInteractable>() == null && obj.transform.parent != null)
+                    obj = obj.transform.parent.gameObject;
 
-            if (interactableObj != null)
-            {
-                if (!(pm.role == "agent" && interactableObj.GetComponent<ItemPickupMoney>()))
+                if (obj.GetComponent<IInteractable>() != null &&
+                !(pm.role == "agent" && obj.GetComponent<ItemPickupMoney>()))
                 {
-                    interactableObj.GetComponent<IInteractable>().Interact(raycasthit, isInteracting);
+                    if (obj.GetComponent<IInteractable>().Interact(raycasthit, isInteracting))
+                        TouchControls.Instance.interactButton.gameObject.SetActive(true);
                 }
             }
-            else
-            {
-                GameplayManager.Instance.HideDescription();
-                TouchControls.Instance.grabButton.gameObject.SetActive(false);
-            }
-        }
-        else
-        {
-            GameplayManager.Instance.HideDescription();
-            TouchControls.Instance.grabButton.gameObject.SetActive(false);
         }
     }
 
-    public void Interact(RaycastHit hit, bool isInteracting)
+    private void OnInteractInput(InputAction.CallbackContext context)
+    {
+        CheckInteraction(true);
+    }
+
+    private void OnInteractButton()
+    {
+        CheckInteraction(true);
+    }
+
+    private void OnInteractTouch(Finger finger)
+    {
+        RaycastHit hitTouch;
+        Ray ray = Camera.main.ScreenPointToRay(finger.screenPosition); // position in px
+        ray.origin = Camera.main.transform.position;
+        if (Physics.Raycast(ray, out hitTouch, 10f, ~EnvironmentLayer)
+            && hitTouch.collider.gameObject == raycasthit.collider.gameObject)
+        {
+            CheckInteraction(true);
+        }
+    }
+
+    public bool Interact(RaycastHit hit, bool isInteracting)
     {
         if (hit.distance <= interactionDistancePlayer && pm.pv.Owner != GameplayManager.Instance.pm.pv.Owner)
         {
@@ -349,12 +375,10 @@ public class PlayerController : MonoBehaviourPunCallbacks, IInteractable
                     hash.Add("arrests", arrests);
 
                     if (arrests == 1)
-                        hash.Add("firstarrest", (float) PhotonNetwork.Time - GameplayManager.Instance.startTime);
+                        hash.Add("firstarrest", (float)PhotonNetwork.Time - GameplayManager.Instance.startTime);
 
                     PhotonNetwork.LocalPlayer.SetCustomProperties(hash);
-                    //Debug.Log(arrests);
                     pc.pm.SetArrested(true);
-                    GameplayManager.Instance.HideDescription();
                 }
                 else
                     GameplayManager.Instance.ShowDescription("Arrest");
@@ -364,72 +388,15 @@ public class PlayerController : MonoBehaviourPunCallbacks, IInteractable
                 if (isInteracting)
                 {
                     pc.pm.SetArrested(false);
-                    GameplayManager.Instance.HideDescription();
                 }
                 else
                     GameplayManager.Instance.ShowDescription("Free");
             }
-        }
-    }
 
-    private bool CheckIsLookingAtObject()
-    {
-        if (Camera.main != null)
-        {
-            Ray ray = Camera.main.ViewportPointToRay(new Vector3(0.5f, 0.5f));
-            ray.origin = Camera.main.transform.position;
-            return Physics.Raycast(ray, out raycasthit, 10f, ~EnvironmentLayer);
+            return true;
         }
         else
             return false;
-    }
-
-    private bool CheckIsInteractingWithObject(RaycastHit hit)
-    {
-        RaycastHit hitTouch;
-
-        isHolding = false;
-
-        if (GameplayManager.Instance.pc.interactAction.ReadValue<float>() > 0 && !Application.isMobilePlatform)
-        {
-            isHolding = true;
-        }
-        else if (Application.isMobilePlatform && Touch.activeFingers.Count > 0)
-        {
-            foreach (Finger finger in Touch.activeFingers)
-            {
-                Ray ray = Camera.main.ScreenPointToRay(finger.screenPosition); // position in px
-                ray.origin = Camera.main.transform.position;
-                if (Physics.Raycast(ray, out hitTouch, 10f, ~EnvironmentLayer))
-                {
-                    if (hitTouch.collider.gameObject == hit.collider.gameObject)
-                    {
-                        isHolding = true;
-                    }
-                    break;
-                }
-            }
-        }
-
-        if (!isHolding)
-        {
-            if (!isReleased)
-            {
-                isReleased = true;
-                return true;
-            }
-        }
-        else
-        {
-            isReleased = false;
-        }
-
-        return false;
-    }
-
-    public void SetGrounded(bool _grounded)
-    {
-        grounded = _grounded;
     }
 
     private void Die()
@@ -450,8 +417,14 @@ public class PlayerController : MonoBehaviourPunCallbacks, IInteractable
 
             if (pv.IsMine)
             {
-                playerControls.Actions.Special01.started += Crouch;
-                playerControls.Actions.Special02.started += NightVision;
+                playerControls.Actions.Special01.started += CrouchInput;
+                playerControls.Actions.Special02.started += NightVisionInput;
+
+                if (Application.isMobilePlatform)
+                {
+                    TouchControls.Instance.crouchButton.onClick.AddListener(Crouch);
+                    TouchControls.Instance.nightvisionButton.onClick.AddListener(NightVision);
+                }
             }
         }
         else
@@ -459,7 +432,7 @@ public class PlayerController : MonoBehaviourPunCallbacks, IInteractable
             Destroy(nv);
         }
 
-        if (!pv.IsMine)
+        if (!pv.IsMine || pv.IsMine)
         {
             GameObject meshPrefab = Resources.Load(string.Format("Characters/PlayerGraphics{0}{1}", char.ToUpper(role[0]), role.Substring(1))) as GameObject;
             Instantiate(meshPrefab, graphicsContainer.transform, false);

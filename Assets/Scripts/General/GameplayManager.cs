@@ -67,23 +67,25 @@ public class GameplayManager : MonoBehaviourPunCallbacks
 
     public bool CheckIfMatchIsFinished()
     {
-        bool isFinished = true;
+        bool isFinished = false;
 
         PlayerManager[] playerManagers = FindObjectsOfType<PlayerManager>();
 
         if (PhotonNetwork.CurrentRoom.PlayerCount == playerManagers.Length)
         {
+            isFinished = true;
+
             foreach (PlayerManager playerManager in playerManagers)
             {
-                if (playerManager.role == "robber" && !playerManager.isArrested && !playerManager.hasFinishedSpree)
+                if (playerManager.role == "robber" && !playerManager.isArrested && !playerManager.hasEscaped)
                     isFinished = false;
 
                 if (playerManager.role == null || playerManager.role == "")
                     isFinished = false;
             }
 
-            if (PhotonNetwork.IsMasterClient && isFinished)
-                EndMatch();
+            //if (PhotonNetwork.IsMasterClient && isFinished)
+            //    EndMatch();
         }
 
         return isFinished;
@@ -146,17 +148,17 @@ public class GameplayManager : MonoBehaviourPunCallbacks
                 resultInfoText = string.Format("You stole ${0}", (int) PhotonNetwork.LocalPlayer.CustomProperties["money"]);
 
             // Money
-            if (arrested < robbers)
+            if (arrested < robbers && robbers > 1)
                 resultMoneyText = string.Format("For a total amount of ${0}", (int) PhotonNetwork.CurrentRoom.CustomProperties["totalmoney"]);
 
             // Time
             if (endTime <= maxTime)
             {
                 int[] timeArr = GetMinutesAndSeconds(endTime + 1);
-                if (timeArr[0] > 0)
-                    resultTimeText = string.Format("In {0}{1} minute{2} and {3} second{4}", endTime <= 300 ? "only " : "", timeArr[0], timeArr[0] != 1 ? "s" : "", timeArr[1], timeArr[1] != 1 ? "s" : "");
-                else if (timeArr[1] == 0)
+                if (timeArr[1] == 0)
                     resultTimeText = string.Format("In {0}{1} minute{2}", endTime <= 300 ? "only " : "", timeArr[0], timeArr[0] != 1 ? "s" : "");
+                else if (timeArr[0] > 0)
+                    resultTimeText = string.Format("In {0}{1} minute{2} and {3} second{4}", endTime <= 300 ? "only " : "", timeArr[0], timeArr[0] != 1 ? "s" : "", timeArr[1], timeArr[1] != 1 ? "s" : "");
                 else
                     resultTimeText = string.Format("In only {0} second{1}", timeArr[1] + 1, timeArr[1] + 1 != 1 ? "s" : "");
             }
@@ -185,10 +187,10 @@ public class GameplayManager : MonoBehaviourPunCallbacks
             if (endTime <= maxTime)
             {
                 int[] timeArr = GetMinutesAndSeconds(endTime + 1);
-                if (timeArr[0] > 0)
-                    resultTimeText = string.Format("In {0}{1} minute{2} and {3} second{4}", endTime <= 300 ? "only " : "", timeArr[0], timeArr[0] != 1 ? "s" : "", timeArr[1], timeArr[1] != 1 ? "s" : "");
-                else if (timeArr[1] == 0)
+                if (timeArr[1] == 0)
                     resultTimeText = string.Format("In {0}{1} minute{2}", endTime <= 300 ? "only " : "", timeArr[0], timeArr[0] != 1 ? "s" : "");
+                else if (timeArr[0] > 0)
+                    resultTimeText = string.Format("In {0}{1} minute{2} and {3} second{4}", endTime <= 300 ? "only " : "", timeArr[0], timeArr[0] != 1 ? "s" : "", timeArr[1], timeArr[1] != 1 ? "s" : "");
                 else
                     resultTimeText = string.Format("In only {0} second{1}", timeArr[1] + 1, timeArr[1] + 1 != 1 ? "s" : "");
             }
@@ -219,6 +221,7 @@ public class GameplayManager : MonoBehaviourPunCallbacks
         pm.DisableCameraBinding();
         PhotonNetwork.Destroy(pc.pv);
         PhotonNetwork.Destroy(pm.pv);
+        Destroy(RoomManager.Instance.gameObject);
 
         endScreen.SetActive(true);
 
@@ -331,7 +334,8 @@ public class GameplayManager : MonoBehaviourPunCallbacks
         overviewCamera.GetComponent<Camera>().enabled = true;
         PhotonNetwork.Destroy(pc.pv);
         PhotonNetwork.Destroy(pm.pv);
-        Destroy(RoomManager.Instance.gameObject);
+        if (RoomManager.Instance.gameObject != null)
+            Destroy(RoomManager.Instance.gameObject);
         PhotonNetwork.LeaveRoom();
     }
 
@@ -341,22 +345,23 @@ public class GameplayManager : MonoBehaviourPunCallbacks
         if (PhotonNetwork.IsMasterClient)
         {
             //PhotonNetwork.DestroyAll();
-            PhotonNetwork.Destroy(RoomManager.Instance.gameObject);
+            //PhotonNetwork.Destroy(RoomManager.Instance.gameObject);
             PhotonNetwork.LoadLevel(0);
         }
     }
 
     public override void OnLeftRoom()
     {
+        PhotonNetwork.IsMessageQueueRunning = false;
         SceneManager.LoadScene(0);
         base.OnLeftRoom();
     }
 
     public override void OnRoomPropertiesUpdate(Hashtable propertiesThatChanged)
     {
-        if (PhotonNetwork.IsMasterClient && propertiesThatChanged.ContainsKey("totalmoney"))
+        if (PhotonNetwork.IsMasterClient && propertiesThatChanged.ContainsKey("totalmoney") && CheckIfMatchIsFinished())
         {
-            CheckIfMatchIsFinished();
+            EndMatch();
         }
 
         base.OnRoomPropertiesUpdate(propertiesThatChanged);

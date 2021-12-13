@@ -50,7 +50,8 @@ MonoBehaviour:
   Synchronization: 3
   OwnershipTransfer: 0
   observableSearch: 0
-  ObservedComponents: []
+  ObservedComponents:
+  - {fileID: 0}
   sceneViewId: 0
   InstantiationId: 0
   isRuntimeInstantiated: 0
@@ -71,4 +72,4 @@ MonoBehaviour:
   activePlayerController: {fileID: 0}
   role: 
   isArrested: 0
-  hasFinishedSpree: 0
+  hasEscaped: 0

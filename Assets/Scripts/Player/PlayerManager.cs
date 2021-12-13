@@ -20,7 +20,7 @@ public class PlayerManager : MonoBehaviourPunCallbacks
     public string role;
     private bool hasAssigned = false;
     public bool isArrested = false;
-    public bool hasFinishedSpree = false;
+    public bool hasEscaped = false;
     private bool isPaused = false;
     public bool IsPaused
     {
@@ -40,7 +40,7 @@ public class PlayerManager : MonoBehaviourPunCallbacks
     }
 
     private string[] roles = new string[] { "robber", "agent" };
-    private int[] allSpots = new int[] { 0, 0, 0, 1, 0 };
+    private int[] allSpots = new int[] { 0, 1, 0, 1, 0, 1 };
 
     private void Awake()
     {
@@ -157,8 +157,6 @@ public class PlayerManager : MonoBehaviourPunCallbacks
         if (pv.IsMine)
         {
             GameplayManager.Instance.startTime = (float) PhotonNetwork.CurrentRoom.CustomProperties["startTime"];
-            GameplayManager.Instance.SwitchToMainCamera(false);
-
             CreateController(SpawnManager.Instance.GetSpawnpointById(_spawnpointId));
             GameplayManager.Instance.SwitchToMainCamera(false);
             controller.GetComponent<PlayerController>().cameraContainer.GetComponentInChildren<Camera>().enabled = true;
@@ -186,21 +184,19 @@ public class PlayerManager : MonoBehaviourPunCallbacks
     {
         isArrested = _isArrested;
 
-        if (PhotonNetwork.IsMasterClient)
-        {
-            GameplayManager.Instance.CheckIfMatchIsFinished();
-        }
+        if (PhotonNetwork.IsMasterClient && GameplayManager.Instance.CheckIfMatchIsFinished())
+            GameplayManager.Instance.EndMatch();
     }
 
-    public void FinishSpree()
+    public void Escape()
     {
-        pv.RPC("RPC_FinishSpree", RpcTarget.All);
+        pv.RPC("RPC_Escape", RpcTarget.All);
     }
 
     [PunRPC]
-    private void RPC_FinishSpree()
+    private void RPC_Escape()
     {
-        hasFinishedSpree = true;
+        hasEscaped = true;
         controller.GetComponent<PlayerController>().graphicsContainer.SetActive(false);
 
         if (pv.IsMine)
@@ -254,8 +250,9 @@ public class PlayerManager : MonoBehaviourPunCallbacks
             index %= playerControllers.Length;
             activePlayerController = playerControllers[index];
         }
-        while (activePlayerController == GameplayManager.Instance.pc || activePlayerController.pm.role != "robber" || activePlayerController.pm.hasFinishedSpree);
+        while (activePlayerController == GameplayManager.Instance.pc || activePlayerController.pm.role != "robber" || activePlayerController.pm.hasEscaped);
 
+        GameplayManager.Instance.SetMoney((int) activePlayerController.pv.Owner.CustomProperties["money"]);
         activePlayerController.cameraContainer.GetComponentInChildren<Camera>().enabled = true;
         activePlayerController.cameraContainer.GetComponentInChildren<AudioListener>().enabled = true;
         activePlayerController.fl.enabled = true;
@@ -280,8 +277,9 @@ public class PlayerManager : MonoBehaviourPunCallbacks
 
     public override void OnPlayerPropertiesUpdate(Player targetPlayer, Hashtable changedProps)
     {
-        if (pv.IsMine && targetPlayer == PhotonNetwork.LocalPlayer && changedProps.ContainsKey("money"))
-            GameplayManager.Instance.SetMoney((int) PhotonNetwork.LocalPlayer.CustomProperties["money"]);
+        if (pv.IsMine && changedProps.ContainsKey("money"))
+            if (targetPlayer == activePlayerController.pv.Owner)
+                GameplayManager.Instance.SetMoney((int) targetPlayer.CustomProperties["money"]);
         base.OnPlayerPropertiesUpdate(targetPlayer, changedProps);
     }
 }

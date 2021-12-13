@@ -19,6 +19,8 @@ public class Launcher : MonoBehaviourPunCallbacks
     [SerializeField] TMP_Text roomNameText;
     [SerializeField] TMP_Text roomsAmountText;
     [SerializeField] TMP_Text roomCodeError;
+    [SerializeField] TMP_Text errorText;
+    [SerializeField] TMP_Text disconnectedText;
     [SerializeField] Transform roomListContent;
     [SerializeField] Transform playerListContent;
     [SerializeField] GameObject roomListItemPrefab;
@@ -30,6 +32,7 @@ public class Launcher : MonoBehaviourPunCallbacks
     [SerializeField] private RawImage rawImageQRcode;
     private Texture2D encodedQRcode;
 
+    private int maxPlayersOnServer = 20;
     private byte maxPlayersPerRoom = 6;
     private List<string> roomListNames = new List<string>();
 
@@ -68,12 +71,20 @@ public class Launcher : MonoBehaviourPunCallbacks
     {
         //string username = usernameInput.text;
         Debug.Log("Connecting to server...");
-        PhotonNetwork.NickName = GenerateUniqueUsername();
-        //PlayerPrefs.SetString("username", username);
-        PhotonNetwork.GameVersion = "0.0.1";
-        PhotonNetwork.AutomaticallySyncScene = true;
-        PhotonNetwork.ConnectUsingSettings();
-        MenuManager.Instance.OpenMenu("connecting");
+        if (PhotonNetwork.CountOfPlayers < maxPlayersOnServer)
+        {
+            PhotonNetwork.NickName = GenerateUniqueUsername();
+            //PlayerPrefs.SetString("username", username);
+            PhotonNetwork.GameVersion = "0.0.1";
+            PhotonNetwork.AutomaticallySyncScene = true;
+            PhotonNetwork.ConnectUsingSettings();
+            MenuManager.Instance.OpenMenu("connecting");
+        }
+        else
+        {
+            MenuManager.Instance.OpenMenu("disconnected");
+            disconnectedText.text = "Server is full. Please try again later";
+        }
     }
 
     public override void OnConnectedToMaster()
@@ -92,11 +103,14 @@ public class Launcher : MonoBehaviourPunCallbacks
     {
         if (SceneManager.GetActiveScene().buildIndex != 0)
         {
-            PhotonNetwork.LoadLevel(0);
+            Destroy(RoomManager.Instance.gameObject);
+            SceneManager.LoadScene(0);
+            //PhotonNetwork.LoadLevel(0);
         }
 
         StopCoroutine(UpdatePing());
         MenuManager.Instance.OpenMenu("disconnected");
+        disconnectedText.text = "Server is full. Please try again later";
         Debug.Log("Disconnected from server: " + cause.ToString());
     }
 
