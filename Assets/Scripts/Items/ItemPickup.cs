@@ -9,9 +9,11 @@ public class ItemPickup : MonoBehaviourPunCallbacks, IInteractable
 {
     public int id;
     public string type;
+    public int size;
     public string description = "[ITEM]";
     public bool isPickedUp = false;
     public float interactionDistance = 2f;
+    public AudioClip[] audioClips;
 
     protected void Awake()
     {
@@ -41,10 +43,19 @@ public class ItemPickup : MonoBehaviourPunCallbacks, IInteractable
         ItemManager.Instance.RemoveItem(gameObject);
     }
 
+    public AudioClip GetAudioClip()
+    {
+        if (audioClips.Length > 0)
+            return audioClips[Random.Range(0, audioClips.Length)];
+        else
+            return null;
+    }
+
     private int CreateID()
     {
         string idChild = gameObject.transform.GetSiblingIndex().ToString("000");
         string idParent = gameObject.transform.parent.GetSiblingIndex().ToString("000");
-        return int.Parse(string.Format("{0}{1}", idChild, idParent));
+        string idGrandParent = gameObject.transform.parent.parent.GetSiblingIndex().ToString("000");
+        return int.Parse(string.Format("{0}{1}{2}", idGrandParent, idParent, idChild));
     }
 }

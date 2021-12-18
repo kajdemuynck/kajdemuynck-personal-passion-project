@@ -8,6 +8,7 @@ using Hashtable = ExitGames.Client.Photon.Hashtable;
 public class ItemPickupMoney : ItemPickup
 {
     private int value;
+    public string category;
 
     private void Start()
     {

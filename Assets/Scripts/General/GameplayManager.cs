@@ -21,6 +21,7 @@ public class GameplayManager : MonoBehaviourPunCallbacks
     [SerializeField] GameObject activeMenu;
     [SerializeField] GameObject pauseMenu;
     [SerializeField] TMP_Text timerText;
+    [SerializeField] Slider sensitivitySlider;
     [SerializeField] GameObject robberOverlay;
     [SerializeField] GameObject agentOverlay;
     [SerializeField] TMP_Text moneyText;
@@ -58,6 +59,9 @@ public class GameplayManager : MonoBehaviourPunCallbacks
 
         if (Application.isMobilePlatform)
             touchControls.enabled = true;
+
+        if (PlayerPrefs.HasKey("sensitivity"))
+            sensitivitySlider.value = float.Parse(PlayerPrefs.GetString("sensitivity"));
     }
 
     //private void Start()
@@ -94,6 +98,7 @@ public class GameplayManager : MonoBehaviourPunCallbacks
     public void SwitchToMainCamera(bool toCamera)
     {
         overviewCamera.GetComponent<Camera>().enabled = toCamera;
+        overviewCamera.GetComponent<AudioListener>().enabled = toCamera;
     }
 
     public void EndMatch()
@@ -108,7 +113,7 @@ public class GameplayManager : MonoBehaviourPunCallbacks
         endTime = _endTime;
         PlayerManager[] playerManagers = FindObjectsOfType<PlayerManager>();
 
-        overviewCamera.GetComponent<Camera>().enabled = true;
+        SwitchToMainCamera(true);
         timerText.gameObject.SetActive(false);
 
         int robbers = 0;
@@ -137,11 +142,11 @@ public class GameplayManager : MonoBehaviourPunCallbacks
         {
             // Title
             if (arrested == 0)
-                resultTitleText = "Everyone got away";
+                resultTitleText = string.Format("{0} escaped", robbers > 1 ? "Everyone" : "You");
             else if (arrested == robbers)
-                resultTitleText = "Everyone got caught";
+                resultTitleText = string.Format("{0} got caught", robbers > 1 ? "Everyone" : "You");
             else
-                resultTitleText = string.Format("{0} robber{1} got away", escaped, escaped != 1 ? "s" : "");
+                resultTitleText = string.Format("{0} robber{1} escaped", escaped, escaped != 1 ? "s" : "");
 
             // Info
             if (!pm.isArrested && (int)PhotonNetwork.LocalPlayer.CustomProperties["money"] > 0)
@@ -167,9 +172,9 @@ public class GameplayManager : MonoBehaviourPunCallbacks
         {
             // Title
             if (arrested == 0)
-                resultTitleText = "The robbers got away";
+                resultTitleText = string.Format("The robber{0} escaped", robbers > 1 ? "s" : "");
             else if (arrested == robbers)
-                resultTitleText = "The robbers were caught";
+                resultTitleText = string.Format("The robber{0} caught", robbers > 1 ? "s were" : " was");
             else
                 resultTitleText = string.Format("{0} robber{1} got away", escaped, escaped != 1 ? "s" : "");
 
@@ -223,12 +228,13 @@ public class GameplayManager : MonoBehaviourPunCallbacks
         PhotonNetwork.Destroy(pm.pv);
         Destroy(RoomManager.Instance.gameObject);
 
-        endScreen.SetActive(true);
-
         Cursor.visible = true;
-
-        if (!Application.isMobilePlatform)
+        if (Application.isMobilePlatform)
+            touchControls.enabled = false;
+        else
             Cursor.lockState = CursorLockMode.None;
+
+        endScreen.SetActive(true);
     }
 
     public override void OnMasterClientSwitched(Player newMasterClient)
@@ -321,6 +327,7 @@ public class GameplayManager : MonoBehaviourPunCallbacks
     public void ChangeSensitivity(float value)
     {
         sensitivity = value;
+        PlayerPrefs.SetString("sensitivity", sensitivity.ToString());
     }
 
     public void ResumeGame()
@@ -329,19 +336,24 @@ public class GameplayManager : MonoBehaviourPunCallbacks
         //HidePauseMenu();
     }
 
-    public void QuitGame()
+    public void LeaveMatch()
     {
         overviewCamera.GetComponent<Camera>().enabled = true;
         PhotonNetwork.Destroy(pc.pv);
         PhotonNetwork.Destroy(pm.pv);
-        if (RoomManager.Instance.gameObject != null)
-            Destroy(RoomManager.Instance.gameObject);
+        Destroy(RoomManager.Instance.gameObject);
         PhotonNetwork.LeaveRoom();
     }
 
-    public void ReplayGame()
+    public void LeaveRoom()
     {
-        PhotonNetwork.IsMessageQueueRunning = false;
+        if (PhotonNetwork.InRoom)
+            PhotonNetwork.LeaveRoom();
+    }
+
+    public void GoToLobby()
+    {
+        PhotonNetwork.CurrentRoom.IsOpen = true;
         if (PhotonNetwork.IsMasterClient)
         {
             //PhotonNetwork.DestroyAll();
@@ -352,7 +364,7 @@ public class GameplayManager : MonoBehaviourPunCallbacks
 
     public override void OnLeftRoom()
     {
-        PhotonNetwork.IsMessageQueueRunning = false;
+        //PhotonNetwork.IsMessageQueueRunning = false;
         SceneManager.LoadScene(0);
         base.OnLeftRoom();
     }
@@ -366,4 +378,9 @@ public class GameplayManager : MonoBehaviourPunCallbacks
 
         base.OnRoomPropertiesUpdate(propertiesThatChanged);
     }
+
+    //public override void OnDisconnected(DisconnectCause cause)
+    //{
+    //    LeaveRoom();
+    //}
 }

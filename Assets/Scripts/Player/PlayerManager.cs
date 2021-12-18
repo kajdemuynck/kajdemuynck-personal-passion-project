@@ -169,6 +169,9 @@ public class PlayerManager : MonoBehaviourPunCallbacks
             {
                 GameplayManager.Instance.ShowAgentOverlay();
             }
+
+            if (Application.isMobilePlatform)
+                TouchControls.Instance.SetButtonLayout(_role);
         }
 
         Debug.Log(string.Format("{0}: {1}", pv.Owner, role));
@@ -183,6 +186,11 @@ public class PlayerManager : MonoBehaviourPunCallbacks
     private void RPC_SetArrested(bool _isArrested)
     {
         isArrested = _isArrested;
+
+        if (isArrested)
+            foreach (PlayerController pc in FindObjectsOfType<PlayerController>())
+                if (pc.pm.gameObject == gameObject)
+                    pc.Arrested(isArrested);
 
         if (PhotonNetwork.IsMasterClient && GameplayManager.Instance.CheckIfMatchIsFinished())
             GameplayManager.Instance.EndMatch();
@@ -278,7 +286,7 @@ public class PlayerManager : MonoBehaviourPunCallbacks
     public override void OnPlayerPropertiesUpdate(Player targetPlayer, Hashtable changedProps)
     {
         if (pv.IsMine && changedProps.ContainsKey("money"))
-            if (targetPlayer == activePlayerController.pv.Owner)
+            if (activePlayerController!= null && targetPlayer == activePlayerController.pv.Owner)
                 GameplayManager.Instance.SetMoney((int) targetPlayer.CustomProperties["money"]);
         base.OnPlayerPropertiesUpdate(targetPlayer, changedProps);
     }

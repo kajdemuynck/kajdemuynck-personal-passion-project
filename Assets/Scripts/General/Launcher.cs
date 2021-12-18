@@ -82,8 +82,8 @@ public class Launcher : MonoBehaviourPunCallbacks
         }
         else
         {
-            MenuManager.Instance.OpenMenu("disconnected");
             disconnectedText.text = "Server is full. Please try again later";
+            MenuManager.Instance.OpenMenu("disconnected");
         }
     }
 
@@ -105,13 +105,11 @@ public class Launcher : MonoBehaviourPunCallbacks
         {
             Destroy(RoomManager.Instance.gameObject);
             SceneManager.LoadScene(0);
-            //PhotonNetwork.LoadLevel(0);
         }
 
         StopCoroutine(UpdatePing());
+        disconnectedText.text = "Disconnected from server";
         MenuManager.Instance.OpenMenu("disconnected");
-        disconnectedText.text = "Server is full. Please try again later";
-        Debug.Log("Disconnected from server: " + cause.ToString());
     }
 
     // Create room
@@ -121,7 +119,8 @@ public class Launcher : MonoBehaviourPunCallbacks
         RoomOptions roomOptions = new RoomOptions()
         {
             MaxPlayers = maxPlayersPerRoom,
-            IsVisible = false
+            IsVisible = false,
+            IsOpen = true
         };
         roomOptions.BroadcastPropsChangeToAll = true;
         PhotonNetwork.CreateRoom(GenerateUniqueRoomName(), roomOptions, null);
@@ -223,7 +222,11 @@ public class Launcher : MonoBehaviourPunCallbacks
         Instantiate(playerListItemPrefab, playerListContent).GetComponent<PlayerListItem>().Setup(newPlayer);
 
         float width = playerListContent.gameObject.GetComponent<RectTransform>().sizeDelta.x;
-        float height = (PhotonNetwork.PlayerList.Length * 28) + 8;
+        float heightItem = playerListContent.GetComponent<RectTransform>().sizeDelta.y;
+        float heightSpacing = playerListContent.GetComponent<VerticalLayoutGroup>().spacing;
+        float heightPaddingTop = playerListContent.GetComponent<VerticalLayoutGroup>().padding.top;
+        float heightPaddingBottom = playerListContent.GetComponent<VerticalLayoutGroup>().padding.bottom;
+        float height = (PhotonNetwork.CurrentRoom.PlayerCount * (heightItem + heightSpacing)) + (heightPaddingTop + heightPaddingBottom);
         playerListContent.gameObject.GetComponent<RectTransform>().sizeDelta = new Vector2(width, height);
     }
 
@@ -264,7 +267,7 @@ public class Launcher : MonoBehaviourPunCallbacks
             roomListNames.Add(roomList[i].Name);
             //Debug.Log(string.Format("{0}: {1}", roomList[i].Name, (string) roomList[i].CustomProperties["Access"]));
 
-            if (roomList[i].IsVisible)
+            if (roomList[i].IsVisible && roomList[i].IsOpen)
             {
                 rooms++;
                 Instantiate(roomListItemPrefab, roomListContent).GetComponent<RoomListItem>().Setup(roomList[i]);
@@ -273,7 +276,11 @@ public class Launcher : MonoBehaviourPunCallbacks
 
         roomsAmountText.text = string.Format("({0})", rooms);
         float width = roomListContent.gameObject.GetComponent<RectTransform>().sizeDelta.x;
-        float height = (rooms * 28) + 8;
+        float heightItem = roomListItemPrefab.GetComponent<RectTransform>().sizeDelta.y;
+        float heightSpacing = roomListContent.GetComponent<VerticalLayoutGroup>().spacing;
+        float heightPaddingTop = roomListContent.GetComponent<VerticalLayoutGroup>().padding.top;
+        float heightPaddingBottom = roomListContent.GetComponent<VerticalLayoutGroup>().padding.bottom;
+        float height = (rooms * (heightItem + heightSpacing)) + (heightPaddingTop + heightPaddingBottom);
         roomListContent.gameObject.GetComponent<RectTransform>().sizeDelta = new Vector2(width, height);
     }
 
@@ -298,6 +305,7 @@ public class Launcher : MonoBehaviourPunCallbacks
 
     public void StartGame()
     {
+        PhotonNetwork.CurrentRoom.IsOpen = false;
         PhotonNetwork.IsMessageQueueRunning = false;
         PhotonNetwork.LoadLevel(1);
     }

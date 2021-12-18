@@ -31,11 +31,13 @@ public class TouchControls : MonoBehaviour
         }
     }
 
-    public void ActivateControls()
+    public void SetButtonLayout(string role)
     {
-        MoveJoystick.gameObject.SetActive(true);
-        LookJoystick.gameObject.SetActive(true);
-        interactButton.gameObject.SetActive(true);
+        if (role == "agent")
+        {
+            crouchButton.gameObject.SetActive(false);
+            nightvisionButton.gameObject.SetActive(false);
+        }
     }
 
     public void CrouchButtonToggle(bool state)

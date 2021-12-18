@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using Photon.Pun;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -11,7 +12,9 @@ public class ItemManager : MonoBehaviour
     PhotonView pv;
 
     private List<ItemPickup> itemsPickup;
-    private List<ItemPickupMoney> itemsPickupMoney;
+    //private List<ItemPickupMoney> itemsPickupMoney;
+    private List<ItemSpot> emptySpots;
+    [SerializeField] GameObject[] itemsPickupMoneyObj;
 
     private void Awake()
     {
@@ -31,9 +34,8 @@ public class ItemManager : MonoBehaviour
 
     public void Start()
     {
-        itemsPickup = new List<ItemPickup>(FindObjectsOfType<ItemPickup>());
-        itemsPickupMoney = new List<ItemPickupMoney>();
-        SortList();
+        emptySpots = new List<ItemSpot>(FindObjectsOfType<ItemSpot>()).FindAll(item => !(item.GetComponentInChildren<ItemPickup>() != null && item.GetComponentInChildren<ItemPickupMoney>() == null));
+        SortSpotList();
 
         if (PhotonNetwork.IsMasterClient)
         {
@@ -43,35 +45,50 @@ public class ItemManager : MonoBehaviour
         PhotonNetwork.IsMessageQueueRunning = true;
     }
 
-    private void SortList()
+    private void SortItemList()
     {
         itemsPickup.Sort(delegate (ItemPickup a, ItemPickup b) {
             return (a.id).CompareTo(b.id);
         });
+    }
 
-        foreach (ItemPickup item in itemsPickup)
-        {
-            if (item.gameObject.GetComponent<ItemPickupMoney>())
-            {
-                itemsPickupMoney.Add(item.GetComponent<ItemPickupMoney>());
-            }
-        }
+    private void SortSpotList()
+    {
+        emptySpots.Sort(delegate (ItemSpot a, ItemSpot b) {
+            return (a.id).CompareTo(b.id);
+        });
     }
 
     public void InitItemPickupsMoney()
     {
-        int[] values = new int[itemsPickupMoney.Count];
-        for (int i = 0; i < values.Length; i++)
-            values[i] = (int)Random.Range(10f, 20f);
+        int[] values = new int[emptySpots.Count];
+        int[] types = new int[emptySpots.Count];
 
-        pv.RPC("RPC_InitItemPickupsMoney", RpcTarget.All, values);
+        for (int i = 0; i < emptySpots.Count; i++)
+        {
+            values[i] = (int)Random.Range(10f, 20f);
+            do types[i] = Random.Range(0, itemsPickupMoneyObj.Length);
+            while (emptySpots[i].category != itemsPickupMoneyObj[types[i]].GetComponent<ItemPickupMoney>().category || emptySpots[i].size != itemsPickupMoneyObj[types[i]].GetComponent<ItemPickupMoney>().size);
+        }
+
+        pv.RPC("RPC_InitItemPickupsMoney", RpcTarget.All, values, types);
     }
 
     [PunRPC]
-    private void RPC_InitItemPickupsMoney(int[] values)
+    private void RPC_InitItemPickupsMoney(int[] values, int[] types)
     {
-        for (int i = 0; i < itemsPickupMoney.Count; i++)
-            itemsPickupMoney[i].SetValue(values[i]);
+        for (int i = 0; i < emptySpots.Count; i++)
+        {
+            GameObject obj;
+            if (emptySpots[i].GetComponentInChildren<ItemPickupMoney>() == null)
+                obj = Instantiate(itemsPickupMoneyObj[types[i]], emptySpots[i].transform);
+            else
+                obj = emptySpots[i].GetComponentInChildren<ItemPickupMoney>().gameObject;
+            obj.GetComponent<ItemPickupMoney>().SetValue(values[i]);
+        }
+
+        itemsPickup = new List<ItemPickup>(FindObjectsOfType<ItemPickup>());
+        SortItemList();
     }
 
     public void RemoveItem(GameObject item)
@@ -82,9 +99,10 @@ public class ItemManager : MonoBehaviour
     [PunRPC]
     private void RPC_RemoveItem(int index)
     {
-        GameObject item = itemsPickup[index].gameObject;
-        item.GetComponent<ItemPickup>().isPickedUp = true;
-        itemsPickup.Remove(item.GetComponent<ItemPickup>());
-        Destroy(item);
+        ItemPickup itemPickup = itemsPickup[index];
+        itemPickup.transform.parent.GetComponent<ItemSpot>().PlaySound(itemPickup.GetAudioClip());
+        itemPickup.isPickedUp = true;
+        itemsPickup.Remove(itemPickup);
+        Destroy(itemPickup.gameObject);
     }
 }

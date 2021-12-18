@@ -10,7 +10,8 @@ public class MenuManager : MonoBehaviour
 
     [SerializeField] Menu[] menus;
     [SerializeField] TMP_Text titleMain;
-    [SerializeField] GameObject quitButton;
+    [SerializeField] GameObject quitButtonMain;
+    [SerializeField] GameObject quitButtonDisconnected;
 
     private void Awake()
     {
@@ -30,7 +31,8 @@ public class MenuManager : MonoBehaviour
             && Application.platform != RuntimePlatform.LinuxPlayer)
         {
             titleMain.alignment = TextAlignmentOptions.Center;
-            quitButton.SetActive(false);
+            quitButtonMain.SetActive(false);
+            quitButtonDisconnected.SetActive(false);
         }
     }
 

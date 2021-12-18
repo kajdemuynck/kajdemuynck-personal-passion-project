@@ -8,6 +8,14 @@ public class Door : MonoBehaviour, IInteractable
     PhotonView pv;
     [SerializeField] GameObject key;
 
+    [SerializeField] AudioSource doorAudio;
+    [SerializeField] AudioSource lockAudio;
+
+    [SerializeField] AudioClip openAudioClip;
+    [SerializeField] AudioClip closeAudioClip;
+    [SerializeField] AudioClip lockAudioClip;
+    [SerializeField] AudioClip unlockAudioClip;
+
     public bool isKey = false;
     public bool isOpen = false;
     private float interactionDistance = 2f;
@@ -25,6 +33,16 @@ public class Door : MonoBehaviour, IInteractable
     {
         isKey = _isKey;
         key.SetActive(_isKey);
+        if (isKey)
+        {
+            lockAudio.clip = unlockAudioClip;
+            lockAudio.Play();
+        }
+        else
+        {
+            lockAudio.clip = lockAudioClip;
+            lockAudio.Play();
+        }
     }
 
     bool isPlaying(string stateName)
@@ -121,9 +139,17 @@ public class Door : MonoBehaviour, IInteractable
     private void RPC_SyncDoor(bool _isOpen)
     {
         if (_isOpen)
+        {
             anim.Play("DoorOpen", 0, 0.0f);
+            doorAudio.clip = openAudioClip;
+            doorAudio.Play();
+        }
         else
+        {
             anim.Play("DoorClose", 0, 0.0f);
+            doorAudio.clip = closeAudioClip;
+            doorAudio.Play();
+        }
 
         isOpen = _isOpen;
     }

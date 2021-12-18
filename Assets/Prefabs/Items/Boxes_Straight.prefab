@@ -110,6 +110,13 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   id: 0
   type: 
+  size: 2
   description: '[ITEM]'
   isPickedUp: 0
   interactionDistance: 2
+  pickupAudioClip:
+  - {fileID: 8300000, guid: 69bf94b21482b4bb7a61077735db4c10, type: 3}
+  - {fileID: 8300000, guid: 859d36a2d0c3940408b44f762a9eba3e, type: 3}
+  - {fileID: 8300000, guid: 7cf2b1cc4cbbd47139fcea41aae7f114, type: 3}
+  - {fileID: 8300000, guid: 28d8a62c108d542659215fb716b61142, type: 3}
+  category: standard
