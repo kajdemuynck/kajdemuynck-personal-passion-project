@@ -240,11 +240,15 @@ public class Launcher : MonoBehaviourPunCallbacks
         }
 
         startGameButton.SetActive(PhotonNetwork.IsMasterClient && PhotonNetwork.CurrentRoom.PlayerCount > 1);
+        if (PhotonNetwork.IsMasterClient && PhotonNetwork.CurrentRoom.PlayerCount > 1)
+            startGameButton.GetComponent<Button>().Select();
     }
 
     public override void OnPlayerLeftRoom(Player newPlayer)
     {
         startGameButton.SetActive(PhotonNetwork.IsMasterClient && PhotonNetwork.CurrentRoom.PlayerCount > 1);
+        if (PhotonNetwork.IsMasterClient && PhotonNetwork.CurrentRoom.PlayerCount > 1)
+            startGameButton.GetComponent<Button>().Select();
     }
 
     public void LeaveRoom()
@@ -262,6 +266,8 @@ public class Launcher : MonoBehaviourPunCallbacks
     public override void OnMasterClientSwitched(Player newMasterClient)
     {
         startGameButton.SetActive(PhotonNetwork.IsMasterClient && PhotonNetwork.CurrentRoom.PlayerCount > 1);
+        if (PhotonNetwork.IsMasterClient && PhotonNetwork.CurrentRoom.PlayerCount > 1)
+            startGameButton.GetComponent<Button>().Select();
         publicToggle.interactable = true;
         publicToggle.transform.GetChild(0).gameObject.SetActive(true);
     }

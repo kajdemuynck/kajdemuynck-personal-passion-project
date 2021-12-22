@@ -172,10 +172,10 @@ public class GameplayManager : MonoBehaviourPunCallbacks
                 resultTitleText = string.Format("{0} robber{1} got away", escaped, escaped != 1 ? "s" : "");
 
             // Info
-            int arrests = ((string) PhotonNetwork.LocalPlayer.CustomProperties["arrests"]).Split(';').Length;
+            //int arrests = ((string) PhotonNetwork.LocalPlayer.CustomProperties["arrests"]).Split(';').Length;
 
-            if (arrests > 0)
-                resultInfoText = string.Format("You arrested {0} robber{1}", arrests, arrests != 1 ? "s" : "");
+            //if (arrests > 0)
+            //    resultInfoText = string.Format("You arrested {0} robber{1}", arrests, arrests != 1 ? "s" : "");
 
             // Money
             if (arrested < robbers)
