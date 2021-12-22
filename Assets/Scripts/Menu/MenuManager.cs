@@ -12,6 +12,8 @@ public class MenuManager : MonoBehaviour
     [SerializeField] TMP_Text titleMain;
     [SerializeField] GameObject quitButtonMain;
     [SerializeField] GameObject quitButtonDisconnected;
+    [SerializeField] GameObject cameraObj;
+    private float cameraRotation = 0;
 
     private void Awake()
     {
@@ -24,7 +26,6 @@ public class MenuManager : MonoBehaviour
             Destroy(Instance.gameObject);
             Instance = this;
         }
-        //DontDestroyOnLoad(gameObject);
 
         if (Application.platform != RuntimePlatform.OSXPlayer
             && Application.platform != RuntimePlatform.WindowsPlayer
@@ -34,6 +35,13 @@ public class MenuManager : MonoBehaviour
             quitButtonMain.SetActive(false);
             quitButtonDisconnected.SetActive(false);
         }
+    }
+
+    private void FixedUpdate()
+    {
+        cameraRotation += 0.2f;
+        cameraRotation %= 360f;
+        cameraObj.transform.localEulerAngles = new Vector3(cameraObj.transform.localRotation.x, cameraRotation, cameraObj.transform.localRotation.z);
     }
 
     public void OpenMenu(string name)

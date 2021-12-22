@@ -64,35 +64,26 @@ public class GameplayManager : MonoBehaviourPunCallbacks
             sensitivitySlider.value = float.Parse(PlayerPrefs.GetString("sensitivity"));
     }
 
-    //private void Start()
-    //{
-    //    PhotonNetwork.Instantiate(Path.Combine("PhotonPrefabs", "PlayerManager"), Vector3.zero, Quaternion.identity);
-    //}
-
     public bool CheckIfMatchIsFinished()
     {
-        bool isFinished = false;
-
+        bool hasFinished = false;
         PlayerManager[] playerManagers = FindObjectsOfType<PlayerManager>();
 
         if (PhotonNetwork.CurrentRoom.PlayerCount == playerManagers.Length)
         {
-            isFinished = true;
+            hasFinished = true;
 
             foreach (PlayerManager playerManager in playerManagers)
             {
-                if (playerManager.role == "robber" && !playerManager.isArrested && !playerManager.hasEscaped)
-                    isFinished = false;
-
-                if (playerManager.role == null || playerManager.role == "")
-                    isFinished = false;
+                if ((playerManager.role == "robber" && !playerManager.isArrested && !playerManager.hasEscaped)
+                    || playerManager.role == null || playerManager.role == "")
+                {
+                    hasFinished = false;
+                }
             }
-
-            //if (PhotonNetwork.IsMasterClient && isFinished)
-            //    EndMatch();
         }
 
-        return isFinished;
+        return hasFinished;
     }
 
     public void SwitchToMainCamera(bool toCamera)
@@ -115,6 +106,8 @@ public class GameplayManager : MonoBehaviourPunCallbacks
 
         SwitchToMainCamera(true);
         timerText.gameObject.SetActive(false);
+        HideDescription();
+        Inventory.Instance.HideInventory();
 
         int robbers = 0;
         int agents = 0;
@@ -179,10 +172,10 @@ public class GameplayManager : MonoBehaviourPunCallbacks
                 resultTitleText = string.Format("{0} robber{1} got away", escaped, escaped != 1 ? "s" : "");
 
             // Info
-            int arrests = (int) PhotonNetwork.LocalPlayer.CustomProperties["arrests"];
+            int arrests = ((string) PhotonNetwork.LocalPlayer.CustomProperties["arrests"]).Split(';').Length;
 
             if (arrests > 0)
-                resultInfoText = string.Format("You arrested {0} robber{1}", (int) PhotonNetwork.LocalPlayer.CustomProperties["arrests"], robbers != 1 ? "s" : "");
+                resultInfoText = string.Format("You arrested {0} robber{1}", arrests, arrests != 1 ? "s" : "");
 
             // Money
             if (arrested < robbers)
@@ -221,7 +214,12 @@ public class GameplayManager : MonoBehaviourPunCallbacks
             agentOverlay.SetActive(false);
 
         if (PhotonNetwork.IsMasterClient)
+        {
             lobbyButton.SetActive(true);
+            lobbyButton.GetComponent<Button>().Select();
+        }
+        else
+            leaveButton.GetComponent<Button>().Select();
 
         pm.DisableCameraBinding();
         PhotonNetwork.Destroy(pc.pv);
@@ -377,6 +375,16 @@ public class GameplayManager : MonoBehaviourPunCallbacks
         }
 
         base.OnRoomPropertiesUpdate(propertiesThatChanged);
+    }
+
+    public override void OnPlayerLeftRoom(Player otherPlayer)
+    {
+        if (PhotonNetwork.IsMasterClient && CheckIfMatchIsFinished())
+        {
+            EndMatch();
+        }
+
+        base.OnPlayerLeftRoom(otherPlayer);
     }
 
     //public override void OnDisconnected(DisconnectCause cause)

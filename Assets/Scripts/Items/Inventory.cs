@@ -73,4 +73,9 @@ public class Inventory : MonoBehaviour
         foreach (string key in inventoryItems.Keys)
             inventoryItems[key].SetActive(inventoryList.Contains(key));
     }
+
+    public void HideInventory()
+    {
+        gameObject.SetActive(false);
+    }
 }

@@ -9,7 +9,6 @@ using TMPro;
 public class QRCodeScanner : MonoBehaviour
 {
     [SerializeField] private RawImage cameraStream;
-    [SerializeField] private Button joinRoomButton;
 
     private bool isCameraAvailable = false;
     private WebCamTexture cameraTexture;
@@ -17,12 +16,6 @@ public class QRCodeScanner : MonoBehaviour
     private bool isScanning = false;
     private float time = 1f;
     private float timer = 0;
-
-    void Start()
-    {
-        //joinRoomButton.gameObject.SetActive(false);
-        //SetupCamera();
-    }
 
     void Update()
     {
@@ -57,7 +50,6 @@ public class QRCodeScanner : MonoBehaviour
         isScanning = false;
         if (!isCameraAvailable)
             SetupCamera();
-        joinRoomButton.gameObject.SetActive(false);
     }
 
     private void OnDisable()
@@ -65,7 +57,6 @@ public class QRCodeScanner : MonoBehaviour
         timer = 0;
         if (cameraTexture != null && cameraTexture.isPlaying)
             cameraTexture.Stop();
-        joinRoomButton.gameObject.SetActive(false);
         isCameraAvailable = false;
         isScanning = false;
         StopCoroutine("ScanInterval");
@@ -113,12 +104,7 @@ public class QRCodeScanner : MonoBehaviour
                 Color32LuminanceSource colLumSource = new Color32LuminanceSource(cameraTexture.GetPixels32(), cameraTexture.width, cameraTexture.height);
                 Result result = barcodeReader.Decode(colLumSource);
                 if (result != null && result.Text.Length == 4)
-                {
                     JoinRoom(result.Text);
-                    //joinRoomButton.gameObject.GetComponentInChildren<TMP_Text>().text = string.Format("Join room {0}", code);
-                    //joinRoomButton.gameObject.SetActive(true);
-                    //joinRoomButton.Select();
-                }
             }
             catch (System.Exception ex)
             {

@@ -135,11 +135,16 @@ public class PlayerManager : MonoBehaviourPunCallbacks
         }
         else
         {
-            hash.Add("arrests", 0);
-            hash.Add("firstarrest", 0);
+            hash.Add("arrests", "");
+            //hash.Add("firstarrest", 0);
         }
         PhotonNetwork.LocalPlayer.SetCustomProperties(hash);
-        controller = PhotonNetwork.Instantiate(Path.Combine("PhotonPrefabs", "PlayerController"), spawnpoint.position, spawnpoint.rotation, 0, new object[] { pv.ViewID, role });
+        PhotonNetwork.Instantiate(Path.Combine("PhotonPrefabs", "PlayerController"), spawnpoint.position, spawnpoint.rotation, 0, new object[] { pv.ViewID, role });
+    }
+
+    public void SetController(GameObject obj)
+    {
+        controller = obj;
         activePlayerController = controller.GetComponent<PlayerController>();
     }
 
@@ -151,15 +156,15 @@ public class PlayerManager : MonoBehaviourPunCallbacks
     [PunRPC]
     private void RPC_AssignRole(string _role, int _spawnpointId)
     {
-        Debug.Log(string.Format("Role received: {0}", _role));
+        //Debug.Log(string.Format("Role received: {0}", _role));
         role = _role;
 
         if (pv.IsMine)
         {
             GameplayManager.Instance.startTime = (float) PhotonNetwork.CurrentRoom.CustomProperties["startTime"];
-            CreateController(SpawnManager.Instance.GetSpawnpointById(_spawnpointId));
             GameplayManager.Instance.SwitchToMainCamera(false);
-            controller.GetComponent<PlayerController>().cameraContainer.GetComponentInChildren<Camera>().enabled = true;
+            CreateController(SpawnManager.Instance.GetSpawnpointById(_spawnpointId));
+            //controller.GetComponent<PlayerController>().cameraContainer.GetComponentInChildren<Camera>().enabled = true;
 
             if (_role == "robber")
             {
@@ -171,10 +176,17 @@ public class PlayerManager : MonoBehaviourPunCallbacks
             }
 
             if (Application.isMobilePlatform)
-                TouchControls.Instance.SetButtonLayout(_role);
+                TouchControls.Instance.SetButtonLayout(role);
         }
 
         Debug.Log(string.Format("{0}: {1}", pv.Owner, role));
+    }
+
+    public void Respawn()
+    {
+        Transform spawnpoint = SpawnManager.Instance.GetSpawnpointById(SpawnManager.Instance.GetSpawnpointIdByRole(role));
+        controller.transform.position = spawnpoint.position;
+        controller.transform.rotation = spawnpoint.rotation;
     }
 
     public void SetArrested(bool _isArrested)
@@ -186,11 +198,7 @@ public class PlayerManager : MonoBehaviourPunCallbacks
     private void RPC_SetArrested(bool _isArrested)
     {
         isArrested = _isArrested;
-
-        if (isArrested)
-            foreach (PlayerController pc in FindObjectsOfType<PlayerController>())
-                if (pc.pm.gameObject == gameObject)
-                    pc.Arrested(isArrested);
+        controller.GetComponent<PlayerController>().Arrested(isArrested);
 
         if (PhotonNetwork.IsMasterClient && GameplayManager.Instance.CheckIfMatchIsFinished())
             GameplayManager.Instance.EndMatch();
@@ -198,14 +206,18 @@ public class PlayerManager : MonoBehaviourPunCallbacks
 
     public void Escape()
     {
-        pv.RPC("RPC_Escape", RpcTarget.All);
+        pv.RPC("RPC_Escape", RpcTarget.All, PhotonNetwork.LocalPlayer.ActorNumber);
     }
 
     [PunRPC]
-    private void RPC_Escape()
+    private void RPC_Escape(int playerNumber)
     {
+        if (hasEscaped && activePlayerController.pv.Owner.ActorNumber == playerNumber)
+            SwitchCamera();
+
         hasEscaped = true;
         controller.GetComponent<PlayerController>().graphicsContainer.SetActive(false);
+        Destroy(controller.GetComponent<PlayerController>().cc);
 
         if (pv.IsMine)
         {
@@ -219,30 +231,58 @@ public class PlayerManager : MonoBehaviourPunCallbacks
 
             if (!GameplayManager.Instance.CheckIfMatchIsFinished())
             {
-                controller.GetComponent<PlayerController>().DisableControls();
                 playerControllers = FindObjectsOfType<PlayerController>();
-                controller.GetComponent<PlayerController>().playerControls.Actions.Special01.started += SwitchCameraBinding;
-                controller.GetComponent<PlayerController>().playerControls.Actions.Special02.started += SwitchNightVision;
                 SwitchCamera();
+                controller.GetComponent<PlayerController>().DisableControls();
+                controller.GetComponent<PlayerController>().playerControls.Actions.Special01.started += SwitchCameraInput;
+                controller.GetComponent<PlayerController>().playerControls.Actions.Special02.started += ToggleNightVisionInput;
+
+                if (Application.isMobilePlatform)
+                {
+                    TouchControls.Instance.nightvisionButton.onClick.AddListener(ToggleNightVision);
+                    TouchControls.Instance.crouchButton.onClick.AddListener(SwitchCamera);
+                    TouchControls.Instance.SwitchToSpectateControls();
+                }
+            }
+            else
+            {
+                //if (PhotonNetwork.IsMasterClient)
+                //    GameplayManager.Instance.EndMatch();
             }
         }
+        else
+        {
+            if (GameplayManager.Instance.pm.role == "agent")
+            {
+                string arrests = (string)PhotonNetwork.LocalPlayer.CustomProperties["arrests"];
+                List<string> arrestsList = new List<string>(arrests.Split(';').ToList());
 
-        //Debug.Log(string.Format("Total money collected: {0}", totalMoney));
-        //GameplayManager.Instance.CheckIfMatchIsFinished();
+                Debug.Log(string.Format("Player: {0}", playerNumber));
+                for (int i=0; i<arrestsList.Count; i++)
+                    Debug.Log(string.Format("Arrest: {0}", arrestsList[i]));
+
+                if (arrestsList.Contains(playerNumber.ToString()))
+                    arrestsList.RemoveAt(arrestsList.IndexOf(playerNumber.ToString()));
+
+                arrestsList = arrestsList.FindAll(v => v != "");
+
+                for (int i = 0; i < arrestsList.Count; i++)
+                    Debug.Log(string.Format("Arrest: {0}", arrestsList[i]));
+
+                arrests = string.Join(";", arrestsList);
+
+                //Debug.Log(string.Format("Arrests left: {0}", arrests));
+
+                Hashtable hash = new Hashtable();
+                hash.Add("arrests", arrests);
+                PhotonNetwork.LocalPlayer.SetCustomProperties(hash);
+            }
+        }
     }
 
-    private void SwitchCameraBinding(InputAction.CallbackContext context)
+    private void SwitchCameraInput(InputAction.CallbackContext context)
     {
         SwitchCamera();
-    }
-
-    public void DisableCameraBinding()
-    {
-        if (activePlayerController != controller.GetComponent<PlayerController>())
-        {
-            controller.GetComponent<PlayerController>().playerControls.Actions.Special01.started -= SwitchCameraBinding;
-            controller.GetComponent<PlayerController>().playerControls.Actions.Special02.started -= SwitchNightVision;
-        }
     }
 
     private void SwitchCamera()
@@ -250,6 +290,7 @@ public class PlayerManager : MonoBehaviourPunCallbacks
         activePlayerController.cameraContainer.GetComponentInChildren<Camera>().enabled = false;
         activePlayerController.cameraContainer.GetComponentInChildren<AudioListener>().enabled = false;
         activePlayerController.fl.enabled = false;
+        activePlayerController.ShowGraphics(true);
         bool isNightVision = activePlayerController.nv.enabled;
 
         do
@@ -258,29 +299,40 @@ public class PlayerManager : MonoBehaviourPunCallbacks
             index %= playerControllers.Length;
             activePlayerController = playerControllers[index];
         }
-        while (activePlayerController == GameplayManager.Instance.pc || activePlayerController.pm.role != "robber" || activePlayerController.pm.hasEscaped);
+        while (activePlayerController.pm.role != "robber" || activePlayerController.pm.hasEscaped);
 
         GameplayManager.Instance.SetMoney((int) activePlayerController.pv.Owner.CustomProperties["money"]);
         activePlayerController.cameraContainer.GetComponentInChildren<Camera>().enabled = true;
         activePlayerController.cameraContainer.GetComponentInChildren<AudioListener>().enabled = true;
         activePlayerController.fl.enabled = true;
+        activePlayerController.ShowGraphics(false);
         activePlayerController.nv.enabled = isNightVision;
+        if (Application.isMobilePlatform)
+            TouchControls.Instance.NightVisionButtonToggle(isNightVision);
     }
 
-    private void SwitchNightVision(InputAction.CallbackContext context)
+    private void ToggleNightVisionInput(InputAction.CallbackContext context)
     {
-        activePlayerController.nv.enabled = !activePlayerController.nv.enabled;
+        ToggleNightVision();
     }
 
-    public void Die()
+    private void ToggleNightVision()
     {
-        Transform spawnpoint = SpawnManager.Instance.GetSpawnpointById(SpawnManager.Instance.GetSpawnpointIdByRole(role));
-        controller.transform.position = spawnpoint.position;
-        controller.transform.rotation = spawnpoint.rotation;
-        // Die
-        //PhotonNetwork.Destroy(controller);
-        // Respawn
-        //CreateController(SpawnManager.Instance.GetSpawnpointById(SpawnManager.Instance.GetSpawnpointIdByRole(role)));
+        activePlayerController.ToggleNightVision();
+    }
+
+    public void DisableCameraBinding()
+    {
+        if (activePlayerController != controller.GetComponent<PlayerController>())
+        {
+            controller.GetComponent<PlayerController>().playerControls.Actions.Special01.started -= SwitchCameraInput;
+            controller.GetComponent<PlayerController>().playerControls.Actions.Special02.started -= ToggleNightVisionInput;
+            if (Application.isMobilePlatform)
+            {
+                TouchControls.Instance.nightvisionButton.onClick.RemoveListener(ToggleNightVision);
+                TouchControls.Instance.crouchButton.onClick.RemoveListener(SwitchCamera);
+            }
+        }
     }
 
     public override void OnPlayerPropertiesUpdate(Player targetPlayer, Hashtable changedProps)

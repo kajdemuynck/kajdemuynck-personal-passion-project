@@ -12,11 +12,18 @@ public class Menu : MonoBehaviour
 
     public void Open()
     {
+        gameObject.SetActive(true);
+
         isOpen = true;
         if (defaultSelection != null && defaultSelection.activeSelf)
         {
             if (defaultSelection.GetComponent<Button>())
+            {
                 defaultSelection.GetComponent<Button>().Select();
+                TMP_Text txt = defaultSelection.GetComponent<Button>().GetComponentInChildren<TMP_Text>();
+                if (txt != null)
+                    txt.color = new Color(1, 1, 1, 1);
+            }
             else if (defaultSelection.GetComponent<TMP_InputField>())
                 defaultSelection.GetComponent<TMP_InputField>().Select();
         }
@@ -25,8 +32,6 @@ public class Menu : MonoBehaviour
         {
             SelectAnyButton(transform);
         }
-
-        gameObject.SetActive(true);
     }
 
     public void Close()

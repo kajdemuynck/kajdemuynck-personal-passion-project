@@ -16,8 +16,9 @@ public class Door : MonoBehaviour, IInteractable
     [SerializeField] AudioClip lockAudioClip;
     [SerializeField] AudioClip unlockAudioClip;
 
-    public bool isKey = false;
-    public bool isOpen = false;
+    public bool isKey;
+    public bool isOpen
+        ;
     private float interactionDistance = 2f;
 
     private Animator anim;
@@ -27,6 +28,7 @@ public class Door : MonoBehaviour, IInteractable
         pv = GetComponent<PhotonView>();
         anim = GetComponent<Animator>();
         SetKey(isKey);
+        SyncDoor(isOpen);
     }
 
     public void SetKey(bool _isKey)

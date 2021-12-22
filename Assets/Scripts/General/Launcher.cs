@@ -34,7 +34,7 @@ public class Launcher : MonoBehaviourPunCallbacks
 
     private int maxPlayersOnServer = 20;
     private byte maxPlayersPerRoom = 6;
-    private List<string> roomListNames = new List<string>();
+    private List<RoomInfo> roomList = new List<RoomInfo>();
 
     // Setup
 
@@ -142,11 +142,11 @@ public class Launcher : MonoBehaviourPunCallbacks
 
     // Find room
 
-    public void JoinRoom(RoomInfo info)
-    {
-        PhotonNetwork.JoinRoom(info.Name);
-        MenuManager.Instance.OpenMenu("loading");
-    }
+    //public void JoinRoom(RoomInfo info)
+    //{
+    //    PhotonNetwork.JoinRoom(info.Name);
+    //    MenuManager.Instance.OpenMenu("loading");
+    //}
 
     public void JoinRoom(TMP_InputField inputField)
     {
@@ -171,7 +171,7 @@ public class Launcher : MonoBehaviourPunCallbacks
     public override void OnJoinRoomFailed(short returnCode, string message)
     {
         Debug.Log("OnJoinRoomFailed");
-        roomCodeError.text = "Room joining failed: " + message;
+        roomCodeError.text = "Failed to join room";
         roomCodeError.gameObject.SetActive(true);
         //MenuManager.Instance.OpenMenu("error");
     }
@@ -211,10 +211,12 @@ public class Launcher : MonoBehaviourPunCallbacks
         }
         else
         {
+            publicToggle.interactable = true;
+            publicToggle.transform.GetChild(0).gameObject.SetActive(true);
             publicToggle.isOn = PhotonNetwork.CurrentRoom.IsVisible;
         }
 
-        startGameButton.SetActive(PhotonNetwork.IsMasterClient);// && PhotonNetwork.CurrentRoom.PlayerCount > 1);
+        startGameButton.SetActive(PhotonNetwork.IsMasterClient && PhotonNetwork.CurrentRoom.PlayerCount > 1);
     }
 
     public override void OnPlayerEnteredRoom(Player newPlayer)
@@ -228,6 +230,21 @@ public class Launcher : MonoBehaviourPunCallbacks
         float heightPaddingBottom = playerListContent.GetComponent<VerticalLayoutGroup>().padding.bottom;
         float height = (PhotonNetwork.CurrentRoom.PlayerCount * (heightItem + heightSpacing)) + (heightPaddingTop + heightPaddingBottom);
         playerListContent.gameObject.GetComponent<RectTransform>().sizeDelta = new Vector2(width, height);
+
+        if (PhotonNetwork.IsMasterClient)
+        {
+            if (PhotonNetwork.CurrentRoom.PlayerCount >= PhotonNetwork.CurrentRoom.MaxPlayers)
+                PhotonNetwork.CurrentRoom.IsOpen = false;
+            else if (PhotonNetwork.CurrentRoom.IsOpen == false)
+                PhotonNetwork.CurrentRoom.IsOpen = true;
+        }
+
+        startGameButton.SetActive(PhotonNetwork.IsMasterClient && PhotonNetwork.CurrentRoom.PlayerCount > 1);
+    }
+
+    public override void OnPlayerLeftRoom(Player newPlayer)
+    {
+        startGameButton.SetActive(PhotonNetwork.IsMasterClient && PhotonNetwork.CurrentRoom.PlayerCount > 1);
     }
 
     public void LeaveRoom()
@@ -244,43 +261,53 @@ public class Launcher : MonoBehaviourPunCallbacks
 
     public override void OnMasterClientSwitched(Player newMasterClient)
     {
-        startGameButton.SetActive(PhotonNetwork.IsMasterClient);// && PhotonNetwork.CurrentRoom.PlayerCount > 1);
+        startGameButton.SetActive(PhotonNetwork.IsMasterClient && PhotonNetwork.CurrentRoom.PlayerCount > 1);
         publicToggle.interactable = true;
         publicToggle.transform.GetChild(0).gameObject.SetActive(true);
     }
 
     // Update
 
-    public override void OnRoomListUpdate(List<RoomInfo> roomList)
+    public override void OnRoomListUpdate(List<RoomInfo> roomListChanged)
     {
-        roomListNames.Clear();
+        for (int i = 0; i < roomListChanged.Count; i++)
+        {
+            //Debug.Log(string.Format("{0}: {1} and {2}", roomListChanged[i].Name, roomListChanged[i].IsVisible, roomListChanged[i].IsOpen));
+            //roomListNames.Add(roomList[i].Name);
+
+            //Debug.Log(roomListChanged[i].Name);
+
+            if (roomList.Contains(roomListChanged[i]) && (roomListChanged[i].RemovedFromList || !roomListChanged[i].IsVisible || !roomListChanged[i].IsOpen || roomListChanged[i].PlayerCount == 0 || roomListChanged[i].MaxPlayers == 0))
+                roomList.Remove(roomListChanged[i]);
+
+            if (!roomList.Contains(roomListChanged[i]) && roomListChanged[i].IsVisible && roomListChanged[i].IsOpen && roomListChanged[i].PlayerCount != 0 && roomListChanged[i].MaxPlayers != 0)
+                roomList.Add(roomListChanged[i]);
+
+            //if (roomListChanged[i].RemovedFromList)
+            //{
+            //    if (roomList.Contains(roomListChanged[i]))
+            //        roomList.Remove(roomListChanged[i]);
+            //}
+            //else if (roomListChanged[i].IsVisible && roomListChanged[i].IsOpen)
+            //{
+            //    if (!roomList.Contains(roomListChanged[i]))
+            //        roomList.Add(roomListChanged[i]);
+            //}
+        }
+
         foreach (Transform t in roomListContent)
             Destroy(t.gameObject);
 
-        int rooms = 0;
-        for (int i = 0; i < roomList.Count; i++)
-        {
-            if (roomList[i].RemovedFromList)
-            {
-                continue;
-            }
-            roomListNames.Add(roomList[i].Name);
-            //Debug.Log(string.Format("{0}: {1}", roomList[i].Name, (string) roomList[i].CustomProperties["Access"]));
+        foreach (RoomInfo room in roomList)
+            Instantiate(roomListItemPrefab, roomListContent).GetComponent<RoomListItem>().Setup(room);
 
-            if (roomList[i].IsVisible && roomList[i].IsOpen)
-            {
-                rooms++;
-                Instantiate(roomListItemPrefab, roomListContent).GetComponent<RoomListItem>().Setup(roomList[i]);
-            }
-        }
-
-        roomsAmountText.text = string.Format("({0})", rooms);
+        roomsAmountText.text = string.Format("({0})", roomList.Count);
         float width = roomListContent.gameObject.GetComponent<RectTransform>().sizeDelta.x;
-        float heightItem = roomListItemPrefab.GetComponent<RectTransform>().sizeDelta.y;
+        float heightItem = roomListContent.GetComponent<RectTransform>().sizeDelta.y;
         float heightSpacing = roomListContent.GetComponent<VerticalLayoutGroup>().spacing;
         float heightPaddingTop = roomListContent.GetComponent<VerticalLayoutGroup>().padding.top;
         float heightPaddingBottom = roomListContent.GetComponent<VerticalLayoutGroup>().padding.bottom;
-        float height = (rooms * (heightItem + heightSpacing)) + (heightPaddingTop + heightPaddingBottom);
+        float height = (roomList.Count * (heightItem + heightSpacing)) + (heightPaddingTop + heightPaddingBottom);
         roomListContent.gameObject.GetComponent<RectTransform>().sizeDelta = new Vector2(width, height);
     }
 
@@ -325,8 +352,8 @@ public class Launcher : MonoBehaviourPunCallbacks
         do
         {
             roomName = (Random.Range(0, 10000)).ToString("0000");
-            for (int i = 0; i < roomListNames.Count; i++)
-                if (name == roomListNames[i])
+            for (int i = 0; i < roomList.Count; i++)
+                if (name == roomList[i].Name)
                     isTaken = true;
         }
         while (isTaken);

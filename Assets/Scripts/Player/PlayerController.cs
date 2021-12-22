@@ -8,6 +8,8 @@ using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.EnhancedTouch;
 using Touch = UnityEngine.InputSystem.EnhancedTouch.Touch;
 using Hashtable = ExitGames.Client.Photon.Hashtable;
+using System.Linq;
+using System;
 
 public class PlayerController : MonoBehaviourPunCallbacks, IInteractable
 {
@@ -19,6 +21,10 @@ public class PlayerController : MonoBehaviourPunCallbacks, IInteractable
     private float verticalLookRotation;
     private float interactionDistancePlayer = 3f;
     private bool isCrouched = false;
+    public bool IsCrouched
+    {
+        get { return isCrouched; }
+    }
     private bool isNightVision = true;
     private bool hasLooked = false;
     Vector3 smoothMoveVelocity;
@@ -38,13 +44,14 @@ public class PlayerController : MonoBehaviourPunCallbacks, IInteractable
     [SerializeField] AudioClip nightvisionAudioClip;
 
     Rigidbody rb;
-    CapsuleCollider cc;
+    public CapsuleCollider cc;
     public AudioSource audioSource;
     public Light fl;
     public DeferredNightVisionEffect nv;
     public PhotonView pv;
     public PlayerManager pm;
     private Animator anim;
+    private SkinnedMeshRenderer[] meshes;
 
     private void Awake()
     {
@@ -55,6 +62,7 @@ public class PlayerController : MonoBehaviourPunCallbacks, IInteractable
         cc = GetComponent<CapsuleCollider>();
         pv = GetComponent<PhotonView>();
         pm = PhotonView.Find((int)pv.InstantiationData[0]).GetComponent<PlayerManager>();
+        pm.SetController(gameObject);
         nv = cameraContainer.GetComponentInChildren<DeferredNightVisionEffect>();
         nv.enabled = false;
         fl = cameraContainer.GetComponentInChildren<Light>();
@@ -104,6 +112,13 @@ public class PlayerController : MonoBehaviourPunCallbacks, IInteractable
     {
         playerControls.Disable();
         DisableControls();
+        if (pv.IsMine)
+        {
+            playerControls.Actions.Pause.started -= PauseGameInput;
+
+            if (Application.isMobilePlatform)
+                TouchControls.Instance.pauseButton.onClick.RemoveListener(PauseGame);
+        }
         base.OnDisable();
     }
 
@@ -112,12 +127,10 @@ public class PlayerController : MonoBehaviourPunCallbacks, IInteractable
         if (pv.IsMine)
         {
             playerControls.Actions.Interact.started -= OnInteractInput;
-            playerControls.Actions.Pause.started -= PauseGameInput;
 
             if (Application.isMobilePlatform)
             {
                 TouchControls.Instance.interactButton.onClick.RemoveListener(OnInteractButton);
-                TouchControls.Instance.pauseButton.onClick.RemoveListener(PauseGame);
                 Touch.onFingerUp -= OnInteractTouch;
 
                 if (pm.role == "robber")
@@ -153,11 +166,12 @@ public class PlayerController : MonoBehaviourPunCallbacks, IInteractable
         if (pm.IsPaused || pm.hasEscaped)
             return;
 
-        // Respawn (die) when falling of the map
+        // Respawn when falling of the map
         if (transform.position.y < -10f)
-            Die();
+            pm.Respawn();
 
         Look();
+        CheckInteraction();
 
         if (pm.isArrested && pm.role == "robber")
         {
@@ -166,15 +180,18 @@ public class PlayerController : MonoBehaviourPunCallbacks, IInteractable
         }
 
         Move();
-        CheckInteraction();
     }
 
     private void FixedUpdate()
     {
-        if (!pv.IsMine || pm.IsPaused || pm.isArrested)
+        if (!pv.IsMine)
             return;
 
         CheckState();
+
+        if (pm.IsPaused || pm.isArrested)
+            return;
+
         rb.MovePosition(rb.position + transform.TransformDirection(moveAmount) * Time.fixedDeltaTime);
     }
 
@@ -197,7 +214,7 @@ public class PlayerController : MonoBehaviourPunCallbacks, IInteractable
         {
             float multiplier = 1f;
             if (Application.platform == RuntimePlatform.WebGLPlayer
-                && Application.platform == RuntimePlatform.WindowsPlayer)
+                || Application.platform == RuntimePlatform.WindowsPlayer)
                 multiplier = 0.3f;
 
             horizontal = playerControls.Actions.Look.ReadValue<Vector2>().x * multiplier;
@@ -283,7 +300,6 @@ public class PlayerController : MonoBehaviourPunCallbacks, IInteractable
 
         if (state != previousState)
         {
-            previousState = state;
             pv.RPC("RPC_ChangedState", RpcTarget.All, state);
         }
 
@@ -293,8 +309,8 @@ public class PlayerController : MonoBehaviourPunCallbacks, IInteractable
     [PunRPC]
     private void RPC_ChangedState(string state)
     {
-        //if (!pv.IsMine)
-        //{
+        if (gameObject.activeSelf)
+        {
             switch (state)
             {
                 case "Idle":
@@ -313,7 +329,31 @@ public class PlayerController : MonoBehaviourPunCallbacks, IInteractable
                     anim.Play("Arrested", 0, 0.0f);
                     break;
             }
-        //}
+        }
+
+        previousState = state;
+    }
+
+    public void Arrested(bool isArrested)
+    {
+        if (isArrested)
+        {
+            audioSource.clip = arrestAudioClip;
+            audioSource.Play();
+
+            Debug.Log("Arrested");
+
+            if (!isCrouched)
+                ToggleCrouch(!isCrouched);
+
+            if (pv.IsMine && isNightVision)
+                ToggleNightVision();
+        }
+        else
+        {
+            audioSource.clip = freeAudioClip;
+            audioSource.Play();
+        }
     }
 
     private void CrouchInput(InputAction.CallbackContext context)
@@ -323,23 +363,25 @@ public class PlayerController : MonoBehaviourPunCallbacks, IInteractable
 
     private void Crouch()
     {
-        pv.RPC("RPC_Crouch", RpcTarget.All, !isCrouched);
+        if (!pm.isArrested)
+            pv.RPC("RPC_Crouch", RpcTarget.All, !isCrouched);
     }
 
     [PunRPC]
     private void RPC_Crouch(bool _isCrouched)
     {
+        ToggleCrouch(_isCrouched);
+    }
+
+    public void ToggleCrouch(bool _isCrouched)
+    {
         isCrouched = _isCrouched;
+
         if (Application.isMobilePlatform)
             TouchControls.Instance.CrouchButtonToggle(isCrouched);
 
         if (!isCrouched)
         {
-            //    boxCollider.center = new Vector3(0f, 0.9f, 0f);
-            //    boxCollider.size = new Vector3(0.8f, 1.8f, 0.5f);
-            //    graphicsContainer.transform.localPosition = Vector3.zero;
-            //    graphicsContainer.transform.localRotation = Quaternion.identity;
-            //    graphicsContainer.transform.localScale = Vector3.one;
             cc.center = new Vector3(0f, 0.9f, 0.1f);
             cc.radius = 0.5f;
             cc.height = 1.8f;
@@ -347,18 +389,6 @@ public class PlayerController : MonoBehaviourPunCallbacks, IInteractable
         }
         else
         {
-            //    //boxCollider.center = new Vector3(0f, 0.25f, 0.4f);
-            //    //boxCollider.size = new Vector3(1f, 0.3f, 1f);
-            //    boxCollider.center = new Vector3(0f, 0.25f, 0f);
-            //    boxCollider.size = new Vector3(1.1f, 0.3f, 1.1f);
-            //    //boxCollider.size = new Vector3(boxCollider.size.x, boxCollider.size.y / 2f, boxCollider.size.z);
-            //    //graphicsContainer.transform.localPosition += -transform.up * boxCollider.size.y / 2f;
-            //    //graphicsContainer.transform.localPosition += -transform.up * (boxCollider.size.y - boxCollider.size.z);
-            //    //graphicsContainer.transform.localPosition = new Vector3(0, 0.2f, -0.5f);
-            //    graphicsContainer.transform.localPosition = new Vector3(0, 0.2f, -1f);
-            //    graphicsContainer.transform.localRotation = Quaternion.Euler(90, 0, 0);
-            //    graphicsContainer.transform.localScale = new Vector3(1.1f, 0.9f, 1f);
-            //    //cameraContainer.transform.localPosition = new Vector3(0, 0.3f, 0.8f);
             cc.center = new Vector3(0f, 0.65f, 0.1f);
             cc.radius = 0.5f;
             cc.height = 1.3f;
@@ -366,12 +396,18 @@ public class PlayerController : MonoBehaviourPunCallbacks, IInteractable
         }
     }
 
-    private void NightVisionInput(InputAction.CallbackContext context)
+    public void NightVisionInput(InputAction.CallbackContext context)
     {
         NightVision();
     }
 
-    private void NightVision()
+    public void NightVision()
+    {
+        if (!pm.isArrested)
+            ToggleNightVision();
+    }
+
+    public void ToggleNightVision()
     {
         isNightVision = !isNightVision;
         nv.enabled = isNightVision;
@@ -396,6 +432,12 @@ public class PlayerController : MonoBehaviourPunCallbacks, IInteractable
         GameplayManager.Instance.HideDescription();
         TouchControls.Instance.interactButton.gameObject.SetActive(false);
 
+        if (pm.isArrested && pm.role == "robber")
+        {
+            GameplayManager.Instance.ShowDescription("You have been arrested");
+            return;
+        }
+
         if (Camera.main != null)
         {
             Ray ray = Camera.main.ViewportPointToRay(new Vector3(0.5f, 0.5f));
@@ -407,7 +449,8 @@ public class PlayerController : MonoBehaviourPunCallbacks, IInteractable
                     obj = obj.transform.parent.gameObject;
 
                 if (obj.GetComponent<IInteractable>() != null &&
-                !(pm.role == "agent" && obj.GetComponent<ItemPickupMoney>()))
+                !(pm.role == "agent" && obj.GetComponent<ItemPickup>()) &&
+                !(pm.role == "robber" && obj.GetComponent<PlayerController>() != null && obj.GetComponent<PlayerController>().pm.role == "agent"))
                 {
                     if (obj.GetComponent<IInteractable>().Interact(raycasthit, isInteracting))
                         TouchControls.Instance.interactButton.gameObject.SetActive(true);
@@ -448,13 +491,18 @@ public class PlayerController : MonoBehaviourPunCallbacks, IInteractable
             {
                 if (isInteracting)
                 {
-                    int arrests = (int)PhotonNetwork.LocalPlayer.CustomProperties["arrests"];
-                    arrests++;
+                    string arrests = (string) PhotonNetwork.LocalPlayer.CustomProperties["arrests"];
+                    List<string> arrestsList = new List<string> (arrests.Split(';').ToList());
+
+                    if (!arrestsList.Contains(pv.Owner.ActorNumber.ToString()))
+                        arrestsList.Add(pv.Owner.ActorNumber.ToString());
+
+                    arrests = string.Join(";", arrestsList);
                     Hashtable hash = new Hashtable();
                     hash.Add("arrests", arrests);
 
-                    if (arrests == 1)
-                        hash.Add("firstarrest", (float)PhotonNetwork.Time - GameplayManager.Instance.startTime);
+                    //if (arrests == 1)
+                    //    hash.Add("firstarrest", (float)PhotonNetwork.Time - GameplayManager.Instance.startTime);
 
                     PhotonNetwork.LocalPlayer.SetCustomProperties(hash);
                     pm.SetArrested(true);
@@ -476,28 +524,6 @@ public class PlayerController : MonoBehaviourPunCallbacks, IInteractable
         }
         else
             return false;
-    }
-
-    public void Arrested(bool isArrested)
-    {
-        if (isArrested)
-        {
-            audioSource.clip = arrestAudioClip;
-            audioSource.Play();
-
-            if (isNightVision)
-                NightVision();
-        }
-        else
-        {
-            audioSource.clip = freeAudioClip;
-            audioSource.Play();
-        }
-    }
-
-    private void Die()
-    {
-        pm.Die();
     }
 
     private void SetCharacter(string role)
@@ -529,19 +555,21 @@ public class PlayerController : MonoBehaviourPunCallbacks, IInteractable
             Destroy(nv);
         }
 
-
         GameObject meshPrefab = Resources.Load(string.Format("Characters/PlayerGraphics{0}{1}", char.ToUpper(role[0]), role.Substring(1))) as GameObject;
         GameObject obj = Instantiate(meshPrefab, graphicsContainer.transform, false);
         anim = obj.GetComponent<Animator>();
+        meshes = gameObject.GetComponentsInChildren<SkinnedMeshRenderer>();
 
         if (pv.IsMine)
-        {
-            SkinnedMeshRenderer[] meshRenderers = gameObject.GetComponentsInChildren<SkinnedMeshRenderer>();
-            foreach (SkinnedMeshRenderer mr in meshRenderers)
-                mr.enabled = false;
-        }
+            ShowGraphics(false);
 
         cameraContainer.GetComponentInChildren<Camera>().enabled = pv.IsMine;
         cameraContainer.GetComponentInChildren<AudioListener>().enabled = pv.IsMine;
+    }
+
+    public void ShowGraphics(bool enable)
+    {
+        foreach (SkinnedMeshRenderer mesh in meshes)
+            mesh.enabled = enable;
     }
 }

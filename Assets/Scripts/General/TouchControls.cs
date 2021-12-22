@@ -17,6 +17,7 @@ public class TouchControls : MonoBehaviour
     [SerializeField] Sprite crouchOnSprite;
     [SerializeField] Sprite nvOffSprite;
     [SerializeField] Sprite nvOnSprite;
+    [SerializeField] Sprite spectateOffSprite;
 
     private void Awake()
     {
@@ -54,5 +55,14 @@ public class TouchControls : MonoBehaviour
             nightvisionButton.GetComponent<Image>().sprite = nvOnSprite;
         else
             nightvisionButton.GetComponent<Image>().sprite = nvOffSprite;
+    }
+
+    public void SwitchToSpectateControls()
+    {
+        MoveJoystick.gameObject.SetActive(false);
+        LookJoystick.gameObject.SetActive(false);
+        crouchButton.GetComponent<Image>().sprite = spectateOffSprite;
+        crouchButton.transform.position = new Vector3(72, crouchButton.transform.position.y, crouchButton.transform.position.z);
+        nightvisionButton.transform.position = new Vector3(Screen.width - 72, nightvisionButton.transform.position.y, nightvisionButton.transform.position.z);
     }
 }

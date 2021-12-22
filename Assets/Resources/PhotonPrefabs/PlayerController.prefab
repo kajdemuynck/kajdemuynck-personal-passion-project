@@ -154,6 +154,7 @@ MonoBehaviour:
   arrestAudioClip: {fileID: 8300000, guid: 09b8a1c5b07b24ad79a631607d277342, type: 3}
   freeAudioClip: {fileID: 8300000, guid: 1e7aab54235ec4cbc8abec9ae3ae2a78, type: 3}
   nightvisionAudioClip: {fileID: 8300000, guid: f26d5fe3021084fb9b58cff766e9dae9, type: 3}
+  cc: {fileID: 0}
   audioSource: {fileID: 0}
   fl: {fileID: 0}
   nv: {fileID: 0}

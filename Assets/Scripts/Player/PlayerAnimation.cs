@@ -16,6 +16,6 @@ public class PlayerAnimation : MonoBehaviour
     private void Step()
     {
         AudioClip clip = audioClips[Random.Range(0, audioClips.Length)];
-        audioSource.PlayOneShot(clip, GameplayManager.Instance.pm.role == "robber" ? 0.5f : 1f);
+        audioSource.PlayOneShot(clip, GameplayManager.Instance.pm.role == "robber" ? GameplayManager.Instance.pc.IsCrouched ? 0.2f : 0.5f : 1f);
     }
 }
